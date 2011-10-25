@@ -11,6 +11,7 @@ class BufferScroll(sublime_plugin.EventListener):
 
 	def on_load(self, view):
 		if view.file_name() != None and view.file_name() != '':
+			self.restore(view)
 			#this is not good man!, I hate this
 			sublime.set_timeout(lambda: self.restore(view), 333)
 
