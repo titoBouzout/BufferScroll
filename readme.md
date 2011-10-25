@@ -1,7 +1,7 @@
 Description
 ------------------
 
-Buffer Scroll is simple [Sublime Text](http://www.sublimetext.com/ ) plug-in which remember and restore the scroll and cursor positions, also the selections and foldings states
+Buffer Scroll is simple [Sublime Text](http://www.sublimetext.com/ ) plug-in which remembers and restores the scroll and cursor positions, also the selections and foldings states
 
 
 Installation
