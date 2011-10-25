@@ -18,6 +18,10 @@ class BufferScroll(sublime_plugin.EventListener):
 		if view.file_name() != None and view.file_name() != '':
 			self.save(view)
 
+	def on_pre_save(self, view):
+		if view.file_name() != None and view.file_name() != '':
+			self.save(view)
+
 	def save(self, view):
 		hash = hashlib.sha1(os.path.normpath(view.file_name())).hexdigest()[:7]
 		buffer = {}
@@ -50,8 +54,8 @@ class BufferScroll(sublime_plugin.EventListener):
 			buffer = buffers[hash]
 			if buffer['id'] == view.size():
 				for f in buffer['f']:
-					view.fold(sublime.Region(f[0], f[1]))
+					view.fold(sublime.Region(int(f[0]), int(f[1])))
 				view.sel().clear()
 				for s in buffer['s']:
-					view.sel().add(sublime.Region(s[0], s[1]))
-				view.show(view.text_point(buffer['l'][0], buffer['l'][1]), False)
+					view.sel().add(sublime.Region(int(s[0]), int(s[1])))
+				view.show(view.text_point(int(buffer['l'][0]), int(buffer['l'][1])), False)
