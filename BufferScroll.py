@@ -8,13 +8,14 @@ buffers = settings.get('buffers', {})
 queue = settings.get('queue', [])
 
 class BufferScroll(sublime_plugin.EventListener):
-	def on_close(self, view):
-		if view.file_name() != None and view.file_name() != '':
-			self.save(view)
 
 	def on_load(self, view):
 		if view.file_name() != None and view.file_name() != '':
 			self.restore(view)
+
+	def on_deactivated(self, view):
+		if view.file_name() != None and view.file_name() != '':
+			self.save(view)
 
 	def save(self, view):
 		hash = hashlib.sha1(os.path.normpath(view.file_name())).hexdigest()[:7]
@@ -26,9 +27,11 @@ class BufferScroll(sublime_plugin.EventListener):
 			line_s, col_s = view.rowcol(s.a); line_e, col_e = view.rowcol(s.b)
 			buffer['s'].append([int(view.text_point(line_s, col_s)), int(view.text_point(line_e, col_e))])
 		buffer['f'] = []
-		for f in view.unfold(sublime.Region(0, view.size())):
+		folds = view.unfold(sublime.Region(0, view.size()))
+		for f in folds:
 			line_s, col_s = view.rowcol(f.a); line_e, col_e = view.rowcol(f.b)
 			buffer['f'].append([int(view.text_point(line_s, col_s)), int(view.text_point(line_e, col_e))])
+		view.fold(folds)
 		buffers[hash] = buffer
 		if hash in queue:
 			queue.remove(hash)
