@@ -44,35 +44,34 @@ class BufferScroll(sublime_plugin.EventListener):
 			self.save(view)
 
 	def save(self, view):
-
 		hash = hashlib.sha1(os.path.normpath(view.file_name())).hexdigest()[:7]
 		buffer = {}
 		# if the size of the view change outside the application skip restoration
-		buffer['id'] = int(view.size())
+		buffer['id'] = long(view.size())
 		#line number
-		buffer['l'] = [int(view.rowcol(view.visible_region().begin())[0]), int(view.rowcol(view.visible_region().begin())[1])]
+		buffer['l'] = [view.rowcol(view.visible_region().begin())[0], view.rowcol(view.visible_region().begin())[1]]
 
 		#selections
 		buffer['s'] = []
 		for r in view.sel():
 			line_s, col_s = view.rowcol(r.a); line_e, col_e = view.rowcol(r.b)
-			buffer['s'].append([int(view.text_point(line_s, col_s)), int(view.text_point(line_e, col_e))])
+			buffer['s'].append([view.text_point(line_s, col_s), view.text_point(line_e, col_e)])
 		#marks
 		buffer['m'] = []
 		for r in view.get_regions("mark"):
 			line_s, col_s = view.rowcol(r.a); line_e, col_e = view.rowcol(r.b)
-			buffer['m'].append([int(view.text_point(line_s, col_s)), int(view.text_point(line_e, col_e))])
+			buffer['m'].append([view.text_point(line_s, col_s), view.text_point(line_e, col_e)])
 		#bookmarks
 		buffer['b'] = []
 		for r in view.get_regions("bookmarks"):
 			line_s, col_s = view.rowcol(r.a); line_e, col_e = view.rowcol(r.b)
-			buffer['b'].append([int(view.text_point(line_s, col_s)), int(view.text_point(line_e, col_e))])
+			buffer['b'].append([view.text_point(line_s, col_s), view.text_point(line_e, col_e)])
 		#folding
 		buffer['f'] = []
 		folds = view.unfold(sublime.Region(0, view.size()))
 		for r in folds:
 			line_s, col_s = view.rowcol(r.a); line_e, col_e = view.rowcol(r.b)
-			buffer['f'].append([int(view.text_point(line_s, col_s)), int(view.text_point(line_e, col_e))])
+			buffer['f'].append([view.text_point(line_s, col_s), view.text_point(line_e, col_e)])
 		view.fold(folds)
 
 		buffers[hash] = buffer
@@ -88,10 +87,11 @@ class BufferScroll(sublime_plugin.EventListener):
 		sublime.save_settings('BufferScroll.sublime-settings')
 
 	def restore(self, view):
+		print 'restoring data';
 		hash = hashlib.sha1(os.path.normpath(view.file_name())).hexdigest()[:7]
 		if hash in buffers:
 			buffer = buffers[hash]
-			if buffer['id'] == view.size():
+			if long(buffer['id']) == long(view.size()):
 				view.sel().clear()
 				#fold
 				for r in buffer['f']:
@@ -117,5 +117,5 @@ class BufferScroll(sublime_plugin.EventListener):
 		hash = hashlib.sha1(os.path.normpath(view.file_name())).hexdigest()[:7]
 		if hash in buffers:
 			buffer = buffers[hash]
-			if buffer['id'] == view.size():
+			if long(buffer['id']) == long(view.size()):
 				view.show(view.text_point(buffer['l'][0], buffer['l'][1]), False)
