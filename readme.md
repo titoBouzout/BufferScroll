@@ -17,7 +17,7 @@ https://github.com/SublimeText/BufferScroll
 Forum Thread
 ------------------
 
-http://www.sublimetext.com/forum/viewtopic.php?f=x&t=xxxx
+http://www.sublimetext.com/forum/viewtopic.php?f=5&t=3503
 
 Contribute!
 ------------------
