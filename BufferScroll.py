@@ -87,7 +87,7 @@ class BufferScroll(sublime_plugin.EventListener):
 		sublime.save_settings('BufferScroll.sublime-settings')
 
 	def restore(self, view):
-		print 'restoring data';
+
 		hash = hashlib.sha1(os.path.normpath(view.file_name())).hexdigest()[:7]
 		if hash in buffers:
 			buffer = buffers[hash]
@@ -95,27 +95,27 @@ class BufferScroll(sublime_plugin.EventListener):
 				view.sel().clear()
 				#fold
 				for r in buffer['f']:
-					view.fold(sublime.Region(r[0], r[1]))
+					view.fold(sublime.Region(int(r[0]), int(r[1])))
 				#selection
 				for r in buffer['s']:
-					view.sel().add(sublime.Region(r[0], r[1]))
+					view.sel().add(sublime.Region(int(r[0]), int(r[1])))
 				#marks
 				rs = []
 				for r in buffer['m']:
-					rs.append(sublime.Region(r[0], r[1]))
+					rs.append(sublime.Region(int(r[0]), int(r[1])))
 				if len(rs):
 					view.add_regions("mark", rs, "mark", "dot", sublime.HIDDEN | sublime.PERSISTENT)
 				#bookmarks
 				rs = []
 				for r in buffer['b']:
-					rs.append(sublime.Region(r[0], r[1]))
+					rs.append(sublime.Region(int(r[0]), int(r[1])))
 				if len(rs):
 					view.add_regions("bookmarks", rs, "bookmarks", "bookmark", sublime.HIDDEN | sublime.PERSISTENT)
-				view.show(view.text_point(buffer['l'][0], buffer['l'][1]), False)
+				view.show(view.text_point(int(buffer['l'][0]), int(buffer['l'][1])), False)
 
 	def restoreScroll(self, view):
 		hash = hashlib.sha1(os.path.normpath(view.file_name())).hexdigest()[:7]
 		if hash in buffers:
 			buffer = buffers[hash]
 			if long(buffer['id']) == long(view.size()):
-				view.show(view.text_point(buffer['l'][0], buffer['l'][1]), False)
+				view.show(view.text_point(int(buffer['l'][0]), int(buffer['l'][1])), False)
