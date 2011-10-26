@@ -21,11 +21,10 @@ class BufferScroll(sublime_plugin.EventListener):
 
 	def on_load(self, view):
 		if view.file_name() != None and view.file_name() != '':
-			# restore on preview tabs should be fast
+			# restore on preview tabs should be fast as posible
 			self.restore(view)
-			# overwrite restoration made by the application
-			# which puts focus on cursor position, not line number
-			sublime.set_timeout(lambda: self.restoreScroll(view), 333)
+			# overwrite restoration of scroll made by the application
+			sublime.set_timeout(lambda: self.restoreScroll(view), 200)
 
 	# the application is not sending "on_close" event when closing
 	# or switching the projects, then we need to save the data on focus lost
@@ -33,24 +32,26 @@ class BufferScroll(sublime_plugin.EventListener):
 		if view.file_name() != None and view.file_name() != '':
 			self.save(view)
 
-	# save data when background tabs are closed
-	# for these that don't receive "on_deactivated"
+	# save the data when background tabs are closed
+	# these that don't receive "on_deactivated"
 	def on_close(self, view):
 		if view.file_name() != None and view.file_name() != '':
 			self.save(view)
 
-	# save data for focused tab
+	# save data for focused tab when saving
 	def on_pre_save(self, view):
 		if view.file_name() != None and view.file_name() != '':
 			self.save(view)
 
 	def save(self, view):
+
 		hash = hashlib.sha1(os.path.normpath(view.file_name())).hexdigest()[:7]
 		buffer = {}
 		# if the size of the view change outside the application skip restoration
-		buffer['id'] = view.size()
+		buffer['id'] = int(view.size())
 		#line number
 		buffer['l'] = [int(view.rowcol(view.visible_region().begin())[0]), int(view.rowcol(view.visible_region().begin())[1])]
+
 		#selections
 		buffer['s'] = []
 		for r in view.sel():
@@ -94,27 +95,27 @@ class BufferScroll(sublime_plugin.EventListener):
 				view.sel().clear()
 				#fold
 				for r in buffer['f']:
-					view.fold(sublime.Region(int(r[0]), int(r[1])))
+					view.fold(sublime.Region(r[0], r[1]))
 				#selection
 				for r in buffer['s']:
-					view.sel().add(sublime.Region(int(r[0]), int(r[1])))
+					view.sel().add(sublime.Region(r[0], r[1]))
 				#marks
 				rs = []
 				for r in buffer['m']:
-					rs.append(sublime.Region(int(r[0]), int(r[1])))
+					rs.append(sublime.Region(r[0], r[1]))
 				if len(rs):
 					view.add_regions("mark", rs, "mark", "dot", sublime.HIDDEN | sublime.PERSISTENT)
 				#bookmarks
 				rs = []
 				for r in buffer['b']:
-					rs.append(sublime.Region(int(r[0]), int(r[1])))
+					rs.append(sublime.Region(r[0], r[1]))
 				if len(rs):
 					view.add_regions("bookmarks", rs, "bookmarks", "bookmark", sublime.HIDDEN | sublime.PERSISTENT)
-				view.show(view.text_point(int(buffer['l'][0]), int(buffer['l'][1])), False)
+				view.show(view.text_point(buffer['l'][0], buffer['l'][1]), False)
 
 	def restoreScroll(self, view):
 		hash = hashlib.sha1(os.path.normpath(view.file_name())).hexdigest()[:7]
 		if hash in buffers:
 			buffer = buffers[hash]
 			if buffer['id'] == view.size():
-				view.show(view.text_point(int(buffer['l'][0]), int(buffer['l'][1])), False)
+				view.show(view.text_point(buffer['l'][0], buffer['l'][1]), False)
