@@ -36,14 +36,14 @@ class BufferScroll(sublime_plugin.EventListener):
 	# these that don't receive "on_deactivated"
 	def on_close(self, view):
 		if view.file_name() != None and view.file_name() != '':
-			self.save(view)
+			self.save(view, True)
 
 	# save data for focused tab when saving
 	def on_pre_save(self, view):
 		if view.file_name() != None and view.file_name() != '':
-			self.save(view)
+			self.save(view, True)
 
-	def save(self, view):
+	def save(self, view, write = False):
 		hash = hashlib.sha1(os.path.normpath(view.file_name().encode('utf-8'))).hexdigest()[:7]
 		buffer = {}
 		# if the size of the view change outside the application skip restoration
@@ -84,7 +84,8 @@ class BufferScroll(sublime_plugin.EventListener):
 			del buffers[hash]
 		settings.set('buffers', buffers)
 		settings.set('queue', queue)
-		sublime.save_settings('BufferScroll.sublime-settings')
+		if write:
+			sublime.save_settings('BufferScroll.sublime-settings')
 
 	def restore(self, view):
 
