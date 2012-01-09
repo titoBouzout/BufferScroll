@@ -45,6 +45,8 @@ class BufferScroll(sublime_plugin.EventListener):
 
 	def save(self, view):
 		hash = hashlib.sha1(os.path.normpath(view.file_name().encode('utf-8'))).hexdigest()[:7]
+		hash += ':'+str(view.window().get_view_index(view) if view.window() else '')
+
 		buffer = {}
 		# if the size of the view change outside the application skip restoration
 		buffer['id'] = long(view.size())
@@ -88,6 +90,7 @@ class BufferScroll(sublime_plugin.EventListener):
 
 	def restore(self, view):
 		hash = hashlib.sha1(os.path.normpath(view.file_name().encode('utf-8'))).hexdigest()[:7]
+		hash += ':'+str(view.window().get_view_index(view) if view.window() else '')
 		if hash in buffers:
 			buffer = buffers[hash]
 			if long(buffer['id']) == long(view.size()):
@@ -116,6 +119,7 @@ class BufferScroll(sublime_plugin.EventListener):
 
 	def restoreScroll(self, view):
 		hash = hashlib.sha1(os.path.normpath(view.file_name().encode('utf-8'))).hexdigest()[:7]
+		hash += ':'+str(view.window().get_view_index(view) if view.window() else '')
 		if hash in buffers:
 			buffer = buffers[hash]
 			if long(buffer['id']) == long(view.size()):
