@@ -5,7 +5,7 @@ import hashlib
 
 settings = sublime.load_settings('BufferScroll.sublime-settings')
 
-version = 2
+version = 3
 version_current = settings.get('version', 0)
 if version_current < version:
 	settings.set('version', version)
