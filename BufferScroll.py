@@ -44,8 +44,6 @@ class BufferScroll(sublime_plugin.EventListener):
 			self.save(view)
 
 	def save(self, view):
-		hash = hashlib.sha1(os.path.normpath(view.file_name().encode('utf-8'))).hexdigest()[:7]
-		hash += ':'+str(view.window().get_view_index(view) if view.window() else '')
 
 		buffer = {}
 
@@ -79,12 +77,21 @@ class BufferScroll(sublime_plugin.EventListener):
 			line_s, col_s = view.rowcol(r.a); line_e, col_e = view.rowcol(r.b)
 			buffer['f'].append([view.text_point(line_s, col_s), view.text_point(line_e, col_e)])
 
-		buffers[hash] = buffer
+		hash_filename = hashlib.sha1(os.path.normpath(view.file_name().encode('utf-8'))).hexdigest()[:7]
+		hash_position = hash_filename+':'+str(view.window().get_view_index(view) if view.window() else '')
 
-		if hash in queue:
-			queue.remove(hash)
-		queue.append(hash)
+		buffers[hash_filename] = buffer
+		buffers[hash_position] = buffer
+
+		if hash_position in queue:
+			queue.remove(hash_position)
+		if hash_filename in queue:
+			queue.remove(hash_filename)
+		queue.append(hash_position)
+		queue.append(hash_filename)
 		if len(queue) > 2000:
+			hash = queue.pop(0)
+			del buffers[hash]
 			hash = queue.pop(0)
 			del buffers[hash]
 		settings.set('buffers', buffers)
@@ -92,8 +99,14 @@ class BufferScroll(sublime_plugin.EventListener):
 		sublime.save_settings('BufferScroll.sublime-settings')
 
 	def restore(self, view):
-		hash = hashlib.sha1(os.path.normpath(view.file_name().encode('utf-8'))).hexdigest()[:7]
-		hash += ':'+str(view.window().get_view_index(view) if view.window() else '')
+		hash_filename = hashlib.sha1(os.path.normpath(view.file_name().encode('utf-8'))).hexdigest()[:7]
+		hash_position = hash_filename+':'+str(view.window().get_view_index(view) if view.window() else '')
+
+		if hash_position in buffers:
+			hash = hash_position
+		else:
+			hash = hash_filename
+		
 		if hash in buffers:
 			buffer = buffers[hash]
 			if long(buffer['id']) == long(view.size()):
@@ -129,8 +142,14 @@ class BufferScroll(sublime_plugin.EventListener):
 					view.set_viewport_position(tuple(buffer['l']), False)
 
 	def restoreScroll(self, view):
-		hash = hashlib.sha1(os.path.normpath(view.file_name().encode('utf-8'))).hexdigest()[:7]
-		hash += ':'+str(view.window().get_view_index(view) if view.window() else '')
+		hash_filename = hashlib.sha1(os.path.normpath(view.file_name().encode('utf-8'))).hexdigest()[:7]
+		hash_position = hash_filename+':'+str(view.window().get_view_index(view) if view.window() else '')
+
+		if hash_position in buffers:
+			hash = hash_position
+		else:
+			hash = hash_filename
+			
 		if hash in buffers:
 			buffer = buffers[hash]
 			if long(buffer['id']) == long(view.size()):
