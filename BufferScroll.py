@@ -73,9 +73,16 @@ class BufferScroll(sublime_plugin.EventListener):
 
 		# folding
 		buffer['f'] = []
-		for r in view.folded_regions():
-			line_s, col_s = view.rowcol(r.a); line_e, col_e = view.rowcol(r.b)
-			buffer['f'].append([view.text_point(line_s, col_s), view.text_point(line_e, col_e)])
+		if sublime.version() >= 2167:
+			for r in view.folded_regions():
+				line_s, col_s = view.rowcol(r.a); line_e, col_e = view.rowcol(r.b)
+				buffer['f'].append([view.text_point(line_s, col_s), view.text_point(line_e, col_e)])
+		else:
+			folds = view.unfold(sublime.Region(0, view.size()))
+			for r in folds:
+				line_s, col_s = view.rowcol(r.a); line_e, col_e = view.rowcol(r.b)
+				buffer['f'].append([view.text_point(line_s, col_s), view.text_point(line_e, col_e)])
+			view.fold(folds)
 
 		hash_filename = hashlib.sha1(os.path.normpath(view.file_name().encode('utf-8'))).hexdigest()[:7]
 		hash_position = hash_filename+':'+str(view.window().get_view_index(view) if view.window() else '')
