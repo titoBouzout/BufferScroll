@@ -48,8 +48,10 @@ class BufferScroll(sublime_plugin.EventListener):
 		hash += ':'+str(view.window().get_view_index(view) if view.window() else '')
 
 		buffer = {}
+
 		# if the size of the view change outside the application skip restoration
 		buffer['id'] = long(view.size())
+
 		# scroll
 		buffer['l'] = list(view.viewport_position())
 
@@ -58,23 +60,24 @@ class BufferScroll(sublime_plugin.EventListener):
 		for r in view.sel():
 			line_s, col_s = view.rowcol(r.a); line_e, col_e = view.rowcol(r.b)
 			buffer['s'].append([view.text_point(line_s, col_s), view.text_point(line_e, col_e)])
+
 		# marks
 		buffer['m'] = []
 		for r in view.get_regions("mark"):
 			line_s, col_s = view.rowcol(r.a); line_e, col_e = view.rowcol(r.b)
 			buffer['m'].append([view.text_point(line_s, col_s), view.text_point(line_e, col_e)])
+
 		# bookmarks
 		buffer['b'] = []
 		for r in view.get_regions("bookmarks"):
 			line_s, col_s = view.rowcol(r.a); line_e, col_e = view.rowcol(r.b)
 			buffer['b'].append([view.text_point(line_s, col_s), view.text_point(line_e, col_e)])
+
 		# folding
 		buffer['f'] = []
-		folds = view.unfold(sublime.Region(0, view.size()))
-		for r in folds:
+		for r in view.folded_regions():
 			line_s, col_s = view.rowcol(r.a); line_e, col_e = view.rowcol(r.b)
 			buffer['f'].append([view.text_point(line_s, col_s), view.text_point(line_e, col_e)])
-		view.fold(folds)
 
 		buffers[hash] = buffer
 
@@ -95,24 +98,32 @@ class BufferScroll(sublime_plugin.EventListener):
 			buffer = buffers[hash]
 			if long(buffer['id']) == long(view.size()):
 				view.sel().clear()
+
 				# fold
+				rs = []
 				for r in buffer['f']:
-					view.fold(sublime.Region(int(r[0]), int(r[1])))
+					rs.append(sublime.Region(int(r[0]), int(r[1])))
+				if len(rs):
+					view.fold(rs)
+
 				# selection
 				for r in buffer['s']:
 					view.sel().add(sublime.Region(int(r[0]), int(r[1])))
+
 				# marks
 				rs = []
 				for r in buffer['m']:
 					rs.append(sublime.Region(int(r[0]), int(r[1])))
 				if len(rs):
 					view.add_regions("mark", rs, "mark", "dot", sublime.HIDDEN | sublime.PERSISTENT)
+
 				# bookmarks
 				rs = []
 				for r in buffer['b']:
 					rs.append(sublime.Region(int(r[0]), int(r[1])))
 				if len(rs):
 					view.add_regions("bookmarks", rs, "bookmarks", "bookmark", sublime.HIDDEN | sublime.PERSISTENT)
+
 				# scroll
 				if buffer['l']:
 					view.set_viewport_position(tuple(buffer['l']), False)
