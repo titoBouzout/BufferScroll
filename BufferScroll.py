@@ -73,7 +73,7 @@ class BufferScroll(sublime_plugin.EventListener):
 
 		# folding
 		buffer['f'] = []
-		if sublime.version() >= 2167:
+		if int(sublime.version()) >= 2167:
 			for r in view.folded_regions():
 				line_s, col_s = view.rowcol(r.a); line_e, col_e = view.rowcol(r.b)
 				buffer['f'].append([view.text_point(line_s, col_s), view.text_point(line_e, col_e)])
