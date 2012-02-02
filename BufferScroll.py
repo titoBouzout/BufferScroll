@@ -29,7 +29,7 @@ class BufferScroll(sublime_plugin.EventListener):
 
 	# restore on activated for tabs changed in external applications
 	def on_activated(self, view):
-			sublime.set_timeout(lambda: self.restoreScroll(view), 200)
+			sublime.set_timeout(lambda: self.restoreScroll(view), 0)
 
 	# the application is not sending "on_close" event when closing
 	# or switching the projects, then we need to save the data on focus lost
@@ -153,15 +153,18 @@ class BufferScroll(sublime_plugin.EventListener):
 
 	def restoreScroll(self, view):
 		
-		hash_filename = hashlib.sha1(os.path.normpath(view.file_name().encode('utf-8'))).hexdigest()[:7]
-		hash_position = hash_filename+':'+str(view.window().get_view_index(view) if view.window() else '')
+		if view.is_loading():
+			sublime.set_timeout(lambda: self.restoreScroll(view), 100)
+		elif view.file_name():
+			hash_filename = hashlib.sha1(os.path.normpath(view.file_name().encode('utf-8'))).hexdigest()[:7]
+			hash_position = hash_filename+':'+str(view.window().get_view_index(view) if view.window() else '')
 
-		if hash_position in buffers:
-			hash = hash_position
-		else:
-			hash = hash_filename
-			
-		if hash in buffers:
-			buffer = buffers[hash]
-			if buffer['l'] and view.viewport_position() == (0.0, 0.0):
-				view.set_viewport_position(tuple(buffer['l']), False)
+			if hash_position in buffers:
+				hash = hash_position
+			else:
+				hash = hash_filename
+				
+			if hash in buffers:
+				buffer = buffers[hash]
+				if buffer['l'] and view.viewport_position() == (0.0, 0.0):
+					view.set_viewport_position(tuple(buffer['l']), False)
