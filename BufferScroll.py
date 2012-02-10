@@ -21,7 +21,7 @@ class BufferScroll(sublime_plugin.EventListener):
 
 	# restore on load for new opened tabs or previews.
 	def on_load(self, view):
-		if view.file_name() != None and view.file_name() != '':
+		if view.file_name() != None and view.file_name() != '' and not view.settings().get('is_widget'):
 			# restore on preview tabs should be fast as posible
 			self.restore(view)
 			# overwrite restoration of scroll made by the application
@@ -29,6 +29,7 @@ class BufferScroll(sublime_plugin.EventListener):
 
 	# restore on activated for tabs changed in external applications
 	def on_activated(self, view):
+		if view.file_name() != None and view.file_name() != '' and not view.settings().get('is_widget'):
 			sublime.set_timeout(lambda: self.restoreScroll(view), 0)
 
 	# the application is not sending "on_close" event when closing
@@ -108,51 +109,52 @@ class BufferScroll(sublime_plugin.EventListener):
 		sublime.save_settings('BufferScroll.sublime-settings')
 
 	def restore(self, view):
+		if view.is_loading():
+			sublime.set_timeout(lambda: self.restore(view), 100)
+		elif view.file_name():
+			hash_filename = hashlib.sha1(os.path.normpath(view.file_name().encode('utf-8'))).hexdigest()[:7]
+			hash_position = hash_filename+':'+str(view.window().get_view_index(view) if view.window() else '')
 
-		hash_filename = hashlib.sha1(os.path.normpath(view.file_name().encode('utf-8'))).hexdigest()[:7]
-		hash_position = hash_filename+':'+str(view.window().get_view_index(view) if view.window() else '')
+			if hash_position in buffers:
+				hash = hash_position
+			else:
+				hash = hash_filename
+			
+			if hash in buffers:
+				buffer = buffers[hash]
 
-		if hash_position in buffers:
-			hash = hash_position
-		else:
-			hash = hash_filename
-		
-		if hash in buffers:
-			buffer = buffers[hash]
+				view.sel().clear()
 
-			view.sel().clear()
+				# fold
+				rs = []
+				for r in buffer['f']:
+					rs.append(sublime.Region(int(r[0]), int(r[1])))
+				if len(rs):
+					view.fold(rs)
 
-			# fold
-			rs = []
-			for r in buffer['f']:
-				rs.append(sublime.Region(int(r[0]), int(r[1])))
-			if len(rs):
-				view.fold(rs)
+				# selection
+				for r in buffer['s']:
+					view.sel().add(sublime.Region(int(r[0]), int(r[1])))
 
-			# selection
-			for r in buffer['s']:
-				view.sel().add(sublime.Region(int(r[0]), int(r[1])))
+				# marks
+				rs = []
+				for r in buffer['m']:
+					rs.append(sublime.Region(int(r[0]), int(r[1])))
+				if len(rs):
+					view.add_regions("mark", rs, "mark", "dot", sublime.HIDDEN | sublime.PERSISTENT)
 
-			# marks
-			rs = []
-			for r in buffer['m']:
-				rs.append(sublime.Region(int(r[0]), int(r[1])))
-			if len(rs):
-				view.add_regions("mark", rs, "mark", "dot", sublime.HIDDEN | sublime.PERSISTENT)
+				# bookmarks
+				rs = []
+				for r in buffer['b']:
+					rs.append(sublime.Region(int(r[0]), int(r[1])))
+				if len(rs):
+					view.add_regions("bookmarks", rs, "bookmarks", "bookmark", sublime.HIDDEN | sublime.PERSISTENT)
 
-			# bookmarks
-			rs = []
-			for r in buffer['b']:
-				rs.append(sublime.Region(int(r[0]), int(r[1])))
-			if len(rs):
-				view.add_regions("bookmarks", rs, "bookmarks", "bookmark", sublime.HIDDEN | sublime.PERSISTENT)
-
-			# scroll
-			if buffer['l'] and view.viewport_position() == (0.0, 0.0):
-				view.set_viewport_position(tuple(buffer['l']), False)
+				# scroll
+				if buffer['l'] and view.viewport_position() == (0.0, 0.0):
+					view.set_viewport_position(tuple(buffer['l']), False)
 
 	def restoreScroll(self, view):
-		
 		if view.is_loading():
 			sublime.set_timeout(lambda: self.restoreScroll(view), 100)
 		elif view.file_name():
