@@ -28,12 +28,12 @@ class BufferScroll(sublime_plugin.EventListener):
 			sublime.set_timeout(lambda: self.restore_scroll(view), 200)
 
 	# restore on activated for tabs changed in external applications
-	def on_activated(self, view):
-		if view.file_name() != None and view.file_name() != '' and not view.settings().get('is_widget'):
-			# restore on preview tabs should be fast as posible
-			self.restore(view)
-			# overwrite restoration of scroll made by the application
-			sublime.set_timeout(lambda: self.restore_scroll(view), 200)
+	# def on_activated(self, view):
+	# 	if view.file_name() != None and view.file_name() != '' and not view.settings().get('is_widget'):
+	# 		# restore on preview tabs should be fast as posible
+	# 		self.restore(view)
+	# 		# overwrite restoration of scroll made by the application
+	# 		sublime.set_timeout(lambda: self.restore_scroll(view), 200)
  
 	# the application is not sending "on_close" event when closing
 	# or switching the projects, then we need to save the data on focus lost
