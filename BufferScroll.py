@@ -5,7 +5,7 @@ import hashlib
 
 settings = sublime.load_settings('BufferScroll.sublime-settings')
 
-version = 3
+version = 4
 version_current = settings.get('version', 0)
 if version_current < version:
 	settings.set('version', version)
@@ -58,6 +58,10 @@ class BufferScroll(sublime_plugin.EventListener):
 		# scroll
 		if int(sublime.version()) >= 2151:
 			buffer['l'] = list(view.viewport_position())
+
+		# if the size of the view change outside the application skip restoration
+		# if not we will restore folds in funny positions, etc...
+		buffer['id'] = long(view.size())
 
 		# selections
 		buffer['s'] = []
@@ -128,31 +132,33 @@ class BufferScroll(sublime_plugin.EventListener):
 
 				view.sel().clear()
 
-				# fold
-				rs = []
-				for r in buffer['f']:
-					rs.append(sublime.Region(int(r[0]), int(r[1])))
-				if len(rs):
-					view.fold(rs)
+				if long(buffer['id']) == long(view.size()):
+					
+					# fold
+					rs = []
+					for r in buffer['f']:
+						rs.append(sublime.Region(int(r[0]), int(r[1])))
+					if len(rs):
+						view.fold(rs)
 
-				# selection
-				for r in buffer['s']:
-					view.sel().add(sublime.Region(int(r[0]), int(r[1])))
+					# selection
+					for r in buffer['s']:
+						view.sel().add(sublime.Region(int(r[0]), int(r[1])))
 
-				# marks
-				rs = []
-				for r in buffer['m']:
-					rs.append(sublime.Region(int(r[0]), int(r[1])))
-				if len(rs):
-					view.add_regions("mark", rs, "mark", "dot", sublime.HIDDEN | sublime.PERSISTENT)
+					# marks
+					rs = []
+					for r in buffer['m']:
+						rs.append(sublime.Region(int(r[0]), int(r[1])))
+					if len(rs):
+						view.add_regions("mark", rs, "mark", "dot", sublime.HIDDEN | sublime.PERSISTENT)
 
-				# bookmarks
-				rs = []
-				for r in buffer['b']:
-					rs.append(sublime.Region(int(r[0]), int(r[1])))
-				if len(rs):
-					view.add_regions("bookmarks", rs, "bookmarks", "bookmark", sublime.HIDDEN | sublime.PERSISTENT)
-
+					# bookmarks
+					rs = []
+					for r in buffer['b']:
+						rs.append(sublime.Region(int(r[0]), int(r[1])))
+					if len(rs):
+						view.add_regions("bookmarks", rs, "bookmarks", "bookmark", sublime.HIDDEN | sublime.PERSISTENT)
+	  
 				# scroll
 				if int(sublime.version()) >= 2151 and buffer['l']:
 					view.set_viewport_position(tuple(buffer['l']), False)
