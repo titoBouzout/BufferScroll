@@ -25,16 +25,16 @@ class BufferScroll(sublime_plugin.EventListener):
 			# restore on preview tabs should be fast as posible
 			self.restore(view)
 			# overwrite restoration of scroll made by the application
+			sublime.set_timeout(lambda: self.restore_scroll(view, True), 200)
+
+	# restore on activated for cloned views
+	def on_activated(self, view):
+		if view.file_name() != None and view.file_name() != '' and not view.settings().get('is_widget'):
+			# restore on preview tabs should be fast as posible
+			self.restore(view)
+			# overwrite restoration of scroll made by the application
 			sublime.set_timeout(lambda: self.restore_scroll(view), 200)
 
-	# restore on activated for tabs changed in external applications
-	# def on_activated(self, view):
-	# 	if view.file_name() != None and view.file_name() != '' and not view.settings().get('is_widget'):
-	# 		# restore on preview tabs should be fast as posible
-	# 		self.restore(view)
-	# 		# overwrite restoration of scroll made by the application
-	# 		sublime.set_timeout(lambda: self.restore_scroll(view), 200)
- 
 	# the application is not sending "on_close" event when closing
 	# or switching the projects, then we need to save the data on focus lost
 	def on_deactivated(self, view):
@@ -95,7 +95,7 @@ class BufferScroll(sublime_plugin.EventListener):
 			view.fold(folds)
 
 		hash_filename = hashlib.sha1(os.path.normpath(view.file_name().encode('utf-8'))).hexdigest()[:7]
-		hash_position = hash_filename+':'+str(view.window().get_view_index(view) if view.window() and view.window().get_view_index(view) != (0,0) and view.window().get_view_index(view) != (0,-1) else '')
+		hash_position = hash_filename+':'+self.view_index(view)
 
 		buffers[hash_filename] = buffer
 		buffers[hash_position] = buffer
@@ -119,8 +119,13 @@ class BufferScroll(sublime_plugin.EventListener):
 		if view.is_loading():
 			sublime.set_timeout(lambda: self.restore(view), 100)
 		elif view.file_name():
+			if view.settings().get('BufferScroll') == self.view_index(view):
+				return;
+			else:
+				view.settings().set('BufferScroll', self.view_index(view))
+
 			hash_filename = hashlib.sha1(os.path.normpath(view.file_name().encode('utf-8'))).hexdigest()[:7]
-			hash_position = hash_filename+':'+str(view.window().get_view_index(view) if view.window() and view.window().get_view_index(view) != (0,0) and view.window().get_view_index(view) != (0,-1) else '')
+			hash_position = hash_filename+':'+self.view_index(view)
 
 			if hash_position in buffers:
 				hash = hash_position
@@ -133,7 +138,7 @@ class BufferScroll(sublime_plugin.EventListener):
 				view.sel().clear()
 
 				if long(buffer['id']) == long(view.size()):
-					
+
 					# fold
 					rs = []
 					for r in buffer['f']:
@@ -158,17 +163,22 @@ class BufferScroll(sublime_plugin.EventListener):
 						rs.append(sublime.Region(int(r[0]), int(r[1])))
 					if len(rs):
 						view.add_regions("bookmarks", rs, "bookmarks", "bookmark", sublime.HIDDEN | sublime.PERSISTENT)
-	  
+
 				# scroll
 				if int(sublime.version()) >= 2151 and buffer['l']:
 					view.set_viewport_position(tuple(buffer['l']), False)
- 
-	def restore_scroll(self, view):
+
+	def restore_scroll(self, view, force = False):
 		if view.is_loading():
 			sublime.set_timeout(lambda: self.restore_scroll(view), 100)
 		elif view.file_name():
+			if view.settings().get('BufferScroll') == self.view_index(view) and force == False:
+				return;
+			else:
+				view.settings().set('BufferScroll', self.view_index(view))
+
 			hash_filename = hashlib.sha1(os.path.normpath(view.file_name().encode('utf-8'))).hexdigest()[:7]
-			hash_position = hash_filename+':'+str(view.window().get_view_index(view) if view.window() and view.window().get_view_index(view) != (0,0) and view.window().get_view_index(view) != (0,-1) else '')
+			hash_position = hash_filename+':'+self.view_index(view)
 
 			if hash_position in buffers:
 				hash = hash_position
@@ -179,3 +189,6 @@ class BufferScroll(sublime_plugin.EventListener):
 				buffer = buffers[hash]
 				if int(sublime.version()) >= 2151 and buffer['l']:
 					view.set_viewport_position(tuple(buffer['l']), False)
+
+	def view_index(self, view):
+		return str(view.window().get_view_index(view) if view.window() and view.window().get_view_index(view) != (0,0) and view.window().get_view_index(view) != (0,-1) else '(0,0)')
