@@ -5,8 +5,8 @@ import hashlib
 
 settings = sublime.load_settings('BufferScroll.sublime-settings')
 
-version = 4
-version_current = settings.get('version', 0)
+version = 5
+version_current = settings.get('version', version)
 if version_current < version:
 	settings.set('version', version)
 	settings.set('buffers', {})
@@ -27,7 +27,7 @@ class BufferScroll(sublime_plugin.EventListener):
 			# overwrite restoration of scroll made by the application
 			sublime.set_timeout(lambda: self.restore_scroll(view), 200)
 
-	# restore on activated for cloned views
+	# restore on load for cloned views
 	def on_clone(self, view):
 		if view.file_name() != None and view.file_name() != '' and not view.settings().get('is_widget'):
 			# restore on preview tabs should be fast as posible
@@ -95,7 +95,7 @@ class BufferScroll(sublime_plugin.EventListener):
 			view.fold(folds)
 
 		hash_filename = hashlib.sha1(os.path.normpath(view.file_name().encode('utf-8'))).hexdigest()[:7]
-		hash_position = hash_filename+':'+self.view_index(view)
+		hash_position = hash_filename+self.view_index(view)
 
 		buffers[hash_filename] = buffer
 		buffers[hash_position] = buffer
@@ -121,7 +121,7 @@ class BufferScroll(sublime_plugin.EventListener):
 		elif view.file_name():
 
 			hash_filename = hashlib.sha1(os.path.normpath(view.file_name().encode('utf-8'))).hexdigest()[:7]
-			hash_position = hash_filename+':'+self.view_index(view)
+			hash_position = hash_filename+self.view_index(view)
 
 			if hash_position in buffers:
 				hash = hash_position
@@ -130,8 +130,6 @@ class BufferScroll(sublime_plugin.EventListener):
 
 			if hash in buffers:
 				buffer = buffers[hash]
-
-				view.sel().clear()
 
 				if long(buffer['id']) == long(view.size()):
 
@@ -143,6 +141,8 @@ class BufferScroll(sublime_plugin.EventListener):
 						view.fold(rs)
 
 					# selection
+					if len(buffer['s']) > 0:
+						view.sel().clear()
 					for r in buffer['s']:
 						view.sel().add(sublime.Region(int(r[0]), int(r[1])))
 
@@ -170,7 +170,7 @@ class BufferScroll(sublime_plugin.EventListener):
 		elif view.file_name():
 
 			hash_filename = hashlib.sha1(os.path.normpath(view.file_name().encode('utf-8'))).hexdigest()[:7]
-			hash_position = hash_filename+':'+self.view_index(view)
+			hash_position = hash_filename+self.view_index(view)
 
 			if hash_position in buffers:
 				hash = hash_position
@@ -183,7 +183,14 @@ class BufferScroll(sublime_plugin.EventListener):
 					view.set_viewport_position(tuple(buffer['l']), False)
 
 	def view_index(self, view):
-		return str(view.window().get_view_index(view) if view.window() and view.window().get_view_index(view) != (0,0) and view.window().get_view_index(view) != (0,-1) else '(0,0)')
+		if not view.window():
+			return ''
+		window = view.window();
+		index = window.get_view_index(view)
+		if index != None and index != (0,0) and index != (0,-1) and index != (-1,-1):
+			return str(index)
+		else:
+			return '';
 
 	def _view_index(self, view):
 		return str(view.window().get_view_index(view) if view.window() else '')
