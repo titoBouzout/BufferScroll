@@ -105,7 +105,8 @@ class BufferScroll(sublime_plugin.EventListener):
 		if hash_filename in queue:
 			queue.remove(hash_filename)
 		queue.append(hash_position)
-		queue.append(hash_filename)
+		if hash_position != hash_filename:
+			queue.append(hash_filename)
 		if len(queue) > 2000:
 			hash = queue.pop(0)
 			del buffers[hash]
