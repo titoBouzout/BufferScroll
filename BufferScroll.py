@@ -1,10 +1,20 @@
-import sublime
-import sublime_plugin
-import os
-import hashlib
+import sublime, sublime_plugin, os, hashlib
+
+# user settings
+
+user_settings = sublime.load_settings('BufferScrollUser.sublime-settings')
+class Pref:
+	def load(self):
+		Pref.remember_color_scheme 	= user_settings.get('remember_color_scheme', False)
+		Pref.remember_syntax				= user_settings.get('remember_syntax', False)
+
+Pref().load()
+user_settings.add_on_change('remember_color_scheme', lambda:Pref().load())
+user_settings.add_on_change('remember_syntax', lambda:Pref().load())
+
+# package "database"
 
 settings = sublime.load_settings('BufferScroll.sublime-settings')
-
 version = 5
 version_current = settings.get('version', version)
 if version_current < version:
@@ -13,9 +23,9 @@ if version_current < version:
 	settings.set('queue', [])
 	sublime.save_settings('BufferScroll.sublime-settings')
 	settings = sublime.load_settings('BufferScroll.sublime-settings')
-
 buffers = settings.get('buffers', {})
 queue = settings.get('queue', [])
+
 
 class BufferScroll(sublime_plugin.EventListener):
 
@@ -94,6 +104,14 @@ class BufferScroll(sublime_plugin.EventListener):
 				buffer['f'].append([view.text_point(line_s, col_s), view.text_point(line_e, col_e)])
 			view.fold(folds)
 
+		# color_scheme http://www.sublimetext.com/forum/viewtopic.php?p=25624#p25624
+		if Pref.remember_color_scheme:
+			buffer['c'] = view.settings().get('color_scheme')
+
+		# syntax
+		if Pref.remember_syntax:
+			buffer['x'] = view.settings().get('syntax')
+
 		hash_filename = hashlib.sha1(os.path.normpath(view.file_name().encode('utf-8'))).hexdigest()[:7]
 		hash_position = hash_filename+self.view_index(view)
 
@@ -161,6 +179,20 @@ class BufferScroll(sublime_plugin.EventListener):
 					if len(rs):
 						view.add_regions("bookmarks", rs, "bookmarks", "bookmark", sublime.HIDDEN | sublime.PERSISTENT)
 
+				# color scheme
+				try:
+					if Pref.remember_color_scheme and buffer['c'] and view.settings().get('color_scheme') != buffer['c']:
+						view.settings().set('color_scheme', buffer['c'])
+				except:
+					pass
+
+				# syntax
+				try:
+					if Pref.remember_syntax and buffer['x'] and view.settings().get('syntax') != buffer['x']:
+						view.settings().set('syntax', buffer['x'])
+				except:
+					pass
+
 				# scroll
 				if int(sublime.version()) >= 2151 and buffer['l']:
 					view.set_viewport_position(tuple(buffer['l']), False)
@@ -195,3 +227,9 @@ class BufferScroll(sublime_plugin.EventListener):
 
 	def _view_index(self, view):
 		return str(view.window().get_view_index(view) if view.window() else '')
+
+
+class buffer_scroll_forget(sublime_plugin.ApplicationCommand):
+	def run(self, what):
+		if what == 'color_scheme':
+			sublime.active_window().active_view().settings().erase('color_scheme')
