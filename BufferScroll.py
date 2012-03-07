@@ -35,7 +35,7 @@ class BufferScroll(sublime_plugin.EventListener):
 			# restore on preview tabs should be fast as posible
 			self.restore(view)
 			# overwrite restoration of scroll made by the application
-			sublime.set_timeout(lambda: self.restore_scroll(view), 200)
+			# sublime.set_timeout(lambda: self.restore_scroll(view), 200)
 
 	# restore on load for cloned views
 	def on_clone(self, view):
@@ -43,7 +43,7 @@ class BufferScroll(sublime_plugin.EventListener):
 			# restore on preview tabs should be fast as posible
 			self.restore(view)
 			# overwrite restoration of scroll made by the application
-			sublime.set_timeout(lambda: self.restore_scroll(view), 200)
+			# sublime.set_timeout(lambda: self.restore_scroll(view), 200)
 
 	# the application is not sending "on_close" event when closing
 	# or switching the projects, then we need to save the data on focus lost
