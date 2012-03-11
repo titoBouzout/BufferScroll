@@ -33,7 +33,8 @@ class BufferScroll(sublime_plugin.EventListener):
 	def on_load(self, view):
 		if view.file_name() != None and view.file_name() != '' and not view.settings().get('is_widget'):
 			# restore on preview tabs should be fast as posible
-			self.restore(view)
+
+			sublime.set_timeout(lambda: self.restore(view), 0)
 			# overwrite restoration of scroll made by the application
 			# sublime.set_timeout(lambda: self.restore_scroll(view), 200)
 
@@ -41,7 +42,7 @@ class BufferScroll(sublime_plugin.EventListener):
 	def on_clone(self, view):
 		if view.file_name() != None and view.file_name() != '' and not view.settings().get('is_widget'):
 			# restore on preview tabs should be fast as posible
-			self.restore(view)
+			sublime.set_timeout(lambda: self.restore(view), 0)
 			# overwrite restoration of scroll made by the application
 			# sublime.set_timeout(lambda: self.restore_scroll(view), 200)
 
