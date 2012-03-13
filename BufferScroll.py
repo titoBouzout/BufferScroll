@@ -128,6 +128,10 @@ class BufferScroll(sublime_plugin.EventListener):
 		# # bookmarks
 		db[id]['b'] = [[item.a, item.b] for item in view.get_regions("bookmarks")]
 
+		# previous folding save, to be able to refold
+		if 'f' in db[id] and list(db[id]['f']) != []:
+			db[id]['pf'] = list(db[id]['f'])
+
 		# folding
 		if int(sublime.version()) >= 2167:
 			db[id]['f'] = [[item.a, item.b] for item in view.folded_regions()]
@@ -236,7 +240,20 @@ class BufferScroll(sublime_plugin.EventListener):
 					else:
 						view.set_viewport_position(tuple(db[id]['l']['0']), False)
 
-class buffer_scroll_forget(sublime_plugin.ApplicationCommand):
+class BufferScrollForget(sublime_plugin.ApplicationCommand):
 	def run(self, what):
 		if what == 'color_scheme':
 			sublime.active_window().active_view().settings().erase('color_scheme')
+
+class BufferScrollReFold(sublime_plugin.WindowCommand):
+	def run(self):
+		view = sublime.active_window().active_view()
+		if view:
+			id, index = BufferScroll().view_id(view)
+			if id in db:
+				if 'pf' in db[id]:
+					rs = []
+					for r in db[id]['pf']:
+						rs.append(sublime.Region(int(r[0]), int(r[1])))
+					if len(rs):
+						view.fold(rs)

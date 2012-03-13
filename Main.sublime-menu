@@ -1,5 +1,22 @@
 [
 	{
+		"caption": "Edit",
+		"mnemonic": "E",
+		"id": "edit",
+		"children":
+		[
+			{
+				"caption": "Code Folding",
+				"id": "fold",
+				"children":
+				[
+					{"caption":"-"},
+					{ "caption": "Refold", "command": "buffer_scroll_re_fold" }
+				]
+			}
+		]
+	},
+	{
 		"caption": "Preferences",
 		"mnemonic": "n",
 		"id": "preferences",
