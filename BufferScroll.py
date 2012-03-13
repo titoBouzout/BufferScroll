@@ -38,6 +38,9 @@ s = sublime.load_settings('BufferScroll.sublime-settings')
 class Pref():
 	def load(self):
 		Pref.remember_color_scheme 	= s.get('remember_color_scheme', False)
+		Pref.synch_bookmarks 				= s.get('synch_bookmarks', False)
+		Pref.synch_marks 						= s.get('synch_marks', False)
+		Pref.synch_folds 						= s.get('synch_folds', False)
 		Pref.current_view						= -1
 		version                     = 6
 		version_current             = s.get('version')
@@ -47,7 +50,10 @@ class Pref():
 			sublime.save_settings('BufferScroll.sublime-settings')
 
 Pref().load()
-s.add_on_change('remember_color_scheme', lambda:Pref().load())
+s.add_on_change('remember_color_scheme', 	lambda:Pref().load())
+s.add_on_change('synch_bookmarks', 				lambda:Pref().load())
+s.add_on_change('synch_marks', 						lambda:Pref().load())
+s.add_on_change('synch_folds', 						lambda:Pref().load())
 
 class BufferScroll(sublime_plugin.EventListener):
 
@@ -63,6 +69,7 @@ class BufferScroll(sublime_plugin.EventListener):
 	# or switching the projects, then we need to save the data on focus lost
 	def on_deactivated(self, view):
 		self.save(view, 'on_deactivated')
+		self.synch(view)
 
 	# track the current_view. See next event listener
 	def on_activated(self, view):
@@ -154,8 +161,6 @@ class BufferScroll(sublime_plugin.EventListener):
 				print db[id];
 			sublime.set_timeout(lambda:self.write(), 0)
 
-		del old_db
-
 	def view_id(self, view):
 		if not view.settings().has('buffer_scroll_name'):
 			view.settings().set('buffer_scroll_name', sha1(normpath(view.file_name().encode('utf-8'))).hexdigest()[:8])
@@ -239,6 +244,79 @@ class BufferScroll(sublime_plugin.EventListener):
 						view.set_viewport_position(tuple(db[id]['l'][index]), False)
 					else:
 						view.set_viewport_position(tuple(db[id]['l']['0']), False)
+
+	def synch(self, view):
+		if not view.file_name() or view.settings().get('is_widget'):
+			return
+
+		# if there is something to synch
+		if not Pref.synch_bookmarks and not Pref.synch_marks and not Pref.synch_folds:
+			return
+
+		# if there is clones
+		clones = []
+		for window in sublime.windows():
+			for _view in window.views():
+				if _view.file_name() == view.file_name() and view.id() != _view.id():
+					clones.append(_view)
+		if not clones:
+			return
+
+		id, index = self.view_id(view)
+
+		if Pref.synch_bookmarks:
+			bookmarks = []
+			for r in db[id]['b']:
+				bookmarks.append(sublime.Region(int(r[0]), int(r[1])))
+
+		if Pref.synch_marks:
+			marks = []
+			for r in db[id]['m']:
+				marks.append(sublime.Region(int(r[0]), int(r[1])))
+
+		if Pref.synch_folds:
+			folds = []
+			for r in db[id]['f']:
+				folds.append(sublime.Region(int(r[0]), int(r[1])))
+
+		for _view in clones:
+
+			# bookmarks
+			if Pref.synch_bookmarks and bookmarks:
+				if bookmarks != _view.get_regions('bookmarks'):
+					if debug:
+						print 'synching bookmarks'
+					_view.add_regions("bookmarks", bookmarks, "bookmarks", "bookmark", sublime.HIDDEN | sublime.PERSISTENT)
+				else:
+					if debug:
+						print 'skipping synch of bookmarks these are equal'
+
+			# marks
+			if Pref.synch_marks and marks:
+				if marks != _view.get_regions('mark'):
+					if debug:
+						print 'synching marks'
+					_view.add_regions("mark", marks, "mark", "dot", sublime.HIDDEN | sublime.PERSISTENT)
+				else:
+					if debug:
+						print 'skipping synch of marks these are equal'
+
+			# folds
+			if Pref.synch_folds and folds:
+				if int(sublime.version()) >= 2167:
+					if folds != _view.folded_regions():
+						if debug:
+							print 'synching folds'
+						_view.unfold(sublime.Region(0, _view.size()))
+						_view.fold(folds)
+					else:
+						if debug:
+							print 'skipping synch of folds these are equal'
+				else:
+					if debug:
+						print 'synching folds'
+					_view.unfold(sublime.Region(0, _view.size()))
+					_view.fold(folds)
 
 class BufferScrollForget(sublime_plugin.ApplicationCommand):
 	def run(self, what):
