@@ -1,0 +1,6 @@
+[
+  {
+    "caption": "Code Folding: Refold",
+    "command": "buffer_scroll_re_fold"
+  }
+]
