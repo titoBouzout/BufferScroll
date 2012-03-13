@@ -1,234 +1,240 @@
-import sublime, sublime_plugin, os, hashlib
+import sublime, sublime_plugin
+from os.path import exists, normpath
+from hashlib import sha1
 
-# user settings
+try:
+	from cPickle import load, dump
+except:
+	sublime.error_messsage('BufferScroll: Unable to load module cPickle.')
 
-user_settings = sublime.load_settings('BufferScrollUser.sublime-settings')
-class Pref:
+debug = False
+
+# open
+
+database = sublime.packages_path()+'/User/BufferScroll.bin'
+if exists(database):
+	try:
+		db = load(file(database, 'rb'));
+	except:
+		db = {}
+else:
+	db = {}
+
+	# upgrade
+	from os import remove, rename
+	try:
+		remove(sublime.packages_path()+'/User/BufferScroll.sublime-settings')
+	except:
+		pass
+	try:
+		rename(sublime.packages_path()+'/User/BufferScrollUser.sublime-settings',
+		       sublime.packages_path()+'/User/BufferScroll.sublime-settings')
+	except:
+		pass
+
+# settings
+
+s = sublime.load_settings('BufferScroll.sublime-settings')
+class Pref():
 	def load(self):
-		Pref.remember_color_scheme 	= user_settings.get('remember_color_scheme', False)
-		Pref.remember_syntax				= user_settings.get('remember_syntax', False)
+		Pref.remember_color_scheme 	= s.get('remember_color_scheme', False)
+		Pref.current_view						= -1
+		version                     = 6
+		version_current             = s.get('version')
+		if version_current != version:
+			s.set('version', version)
+			db = {}
+			sublime.save_settings('BufferScroll.sublime-settings')
 
 Pref().load()
-user_settings.add_on_change('remember_color_scheme', lambda:Pref().load())
-user_settings.add_on_change('remember_syntax', lambda:Pref().load())
-
-# package "database"
-
-settings = sublime.load_settings('BufferScroll.sublime-settings')
-version = 5
-version_current = settings.get('version', version)
-if version_current < version:
-	settings.set('version', version)
-	settings.set('buffers', {})
-	settings.set('queue', [])
-	sublime.save_settings('BufferScroll.sublime-settings')
-	settings = sublime.load_settings('BufferScroll.sublime-settings')
-buffers = settings.get('buffers', {})
-queue = settings.get('queue', [])
-
+s.add_on_change('remember_color_scheme', lambda:Pref().load())
 
 class BufferScroll(sublime_plugin.EventListener):
 
 	# restore on load for new opened tabs or previews.
 	def on_load(self, view):
-		if view.file_name() != None and view.file_name() != '' and not view.settings().get('is_widget'):
-			# restore on preview tabs should be fast as posible
-
-			sublime.set_timeout(lambda: self.restore(view), 0)
-			# overwrite restoration of scroll made by the application
-			# sublime.set_timeout(lambda: self.restore_scroll(view), 200)
+		self.restore(view, 'on_load')
 
 	# restore on load for cloned views
 	def on_clone(self, view):
-		if view.file_name() != None and view.file_name() != '' and not view.settings().get('is_widget'):
-			# restore on preview tabs should be fast as posible
-			sublime.set_timeout(lambda: self.restore(view), 0)
-			# overwrite restoration of scroll made by the application
-			# sublime.set_timeout(lambda: self.restore_scroll(view), 200)
+		self.restore(view, 'on_clone')
 
 	# the application is not sending "on_close" event when closing
 	# or switching the projects, then we need to save the data on focus lost
 	def on_deactivated(self, view):
-		if view.file_name() != None and view.file_name() != '':
-			self.save(view)
+		self.save(view, 'on_deactivated')
+
+	# track the current_view. See next event listener
+	def on_activated(self, view):
+		if view.file_name() and not view.settings().get('is_widget'):
+			Pref.current_view = view.id() # this id is not unique
 
 	# save the data when background tabs are closed
 	# these that don't receive "on_deactivated"
 	def on_close(self, view):
-		if view.file_name() != None and view.file_name() != '':
-			self.save(view)
+		# current_view will receive event on_deactivated ( when closing )
+		# which provides more data than on_close
+		# for example a "get_view_index" ..
+		if Pref.current_view != view.id():
+			self.save(view, 'on_close')
 
 	# save data for focused tab when saving
-	def on_pre_save(self, view):
-		if view.file_name() != None and view.file_name() != '':
-			self.save(view)
+	def on_post_save(self, view):
+		self.save(view, 'on_post_save')
 
-	def save(self, view):
-		buffer = {}
+	# saving
+	def save(self, view, where):
+		if not view.file_name() or view.settings().get('is_widget'):
+			return
 
-		# scroll
-		if int(sublime.version()) >= 2151:
-			buffer['l'] = list(view.viewport_position())
+		id, index = self.view_id(view)
+
+		if debug:
+			print '-----------------------------------'
+			print 'saving from '+where
+			print view.file_name()
+			print 'id '+id
+			print 'position in tabbar '+index
+
+
+		# creates an object for this view, if it is unknow to the package
+		if id not in db:
+			db[id] = {}
+			if 'l' not in db[id]:
+				db[id]['l'] = {}
+
+		# if the result of the new collected data is different
+		# from the old data, then will write to disk
+		old_db = dict(db[id])
 
 		# if the size of the view change outside the application skip restoration
 		# if not we will restore folds in funny positions, etc...
-		buffer['id'] = long(view.size())
+		db[id]['id'] = long(view.size())
+
+		# scroll
+		if int(sublime.version()) >= 2151:
+			# save the scroll with "index" as the id ( usefull for cloned views )
+			db[id]['l'][index] = view.viewport_position()
+			# also save as default if no exists
+			if '0' not in db[id]['l']:
+				db[id]['l']['0'] = view.viewport_position()
 
 		# selections
-		buffer['s'] = []
-		for r in view.sel():
-			line_s, col_s = view.rowcol(r.a); line_e, col_e = view.rowcol(r.b)
-			buffer['s'].append([view.text_point(line_s, col_s), view.text_point(line_e, col_e)])
+		db[id]['s'] = [[item.a, item.b] for item in view.sel()]
 
-		# marks
-		buffer['m'] = []
-		for r in view.get_regions("mark"):
-			line_s, col_s = view.rowcol(r.a); line_e, col_e = view.rowcol(r.b)
-			buffer['m'].append([view.text_point(line_s, col_s), view.text_point(line_e, col_e)])
+		# # marks
+		db[id]['m'] = [[item.a, item.b] for item in view.get_regions("mark")]
 
-		# bookmarks
-		buffer['b'] = []
-		for r in view.get_regions("bookmarks"):
-			line_s, col_s = view.rowcol(r.a); line_e, col_e = view.rowcol(r.b)
-			buffer['b'].append([view.text_point(line_s, col_s), view.text_point(line_e, col_e)])
+		# # bookmarks
+		db[id]['b'] = [[item.a, item.b] for item in view.get_regions("bookmarks")]
 
 		# folding
-		buffer['f'] = []
 		if int(sublime.version()) >= 2167:
-			for r in view.folded_regions():
-				line_s, col_s = view.rowcol(r.a); line_e, col_e = view.rowcol(r.b)
-				buffer['f'].append([view.text_point(line_s, col_s), view.text_point(line_e, col_e)])
+			db[id]['f'] = [[item.a, item.b] for item in view.folded_regions()]
 		else:
 			folds = view.unfold(sublime.Region(0, view.size()))
-			for r in folds:
-				line_s, col_s = view.rowcol(r.a); line_e, col_e = view.rowcol(r.b)
-				buffer['f'].append([view.text_point(line_s, col_s), view.text_point(line_e, col_e)])
+			db[id]['f'] = [[item.a, item.b] for item in folds]
 			view.fold(folds)
 
 		# color_scheme http://www.sublimetext.com/forum/viewtopic.php?p=25624#p25624
 		if Pref.remember_color_scheme:
-			buffer['c'] = view.settings().get('color_scheme')
+			db[id]['c'] = view.settings().get('color_scheme')
 
 		# syntax
-		if Pref.remember_syntax:
-			buffer['x'] = view.settings().get('syntax')
+		db[id]['x'] = view.settings().get('syntax')
 
-		hash_filename = hashlib.sha1(os.path.normpath(view.file_name().encode('utf-8'))).hexdigest()[:7]
-		hash_position = hash_filename+self.view_index(view)
+		# write to disk only if something changed
+		if old_db != db[id]:
+			if debug:
+				print id
+				print db[id];
+			sublime.set_timeout(lambda:self.write(), 0)
 
-		buffers[hash_filename] = buffer
-		buffers[hash_position] = buffer
+		del old_db
 
-		if hash_position in queue:
-			queue.remove(hash_position)
-		if hash_filename in queue:
-			queue.remove(hash_filename)
-		queue.append(hash_position)
-		if hash_position != hash_filename:
-			queue.append(hash_filename)
-		if len(queue) > 2000:
-			hash = queue.pop(0)
-			del buffers[hash]
-			hash = queue.pop(0)
-			del buffers[hash]
-		settings.set('buffers', buffers)
-		settings.set('queue', queue)
-		sublime.save_settings('BufferScroll.sublime-settings')
+	def view_id(self, view):
+		if not view.settings().has('buffer_scroll_name'):
+			view.settings().set('buffer_scroll_name', sha1(normpath(view.file_name().encode('utf-8'))).hexdigest()[:8])
+		return (view.settings().get('buffer_scroll_name'), self.view_index(view))
 
-	def restore(self, view):
+	def view_index(self, view):
+		window = view.window();
+		if not window:
+			window = sublime.active_window()
+		index = window.get_view_index(view)
+		if index and index != (0,0) and index != (0,-1) and index != (-1,-1):
+			return str(index)
+		else:
+			return '0'
+
+	def write(self):
+		if debug:
+			print 'writting to disk'
+		dump(db, file(database, "wb"))
+
+	def restore(self, view, where):
+		if not view.file_name() or view.settings().get('is_widget'):
+			return
+
 		if view.is_loading():
 			sublime.set_timeout(lambda: self.restore(view), 100)
-		elif view.file_name():
+		else:
 
-			hash_filename = hashlib.sha1(os.path.normpath(view.file_name().encode('utf-8'))).hexdigest()[:7]
-			hash_position = hash_filename+self.view_index(view)
+			id, index = self.view_id(view)
 
-			if hash_position in buffers:
-				hash = hash_position
-			else:
-				hash = hash_filename
+			if debug:
+				print '-----------------------------------'
+				print 'restoring from '+where
+				print view.file_name()
+				print 'id '+id
+				print 'position in tabbar '+index
 
-			if hash in buffers:
-				buffer = buffers[hash]
+			if id in db:
 
-				if long(buffer['id']) == long(view.size()):
+				# if the view changed outside of the application, don't restore folds etc
+				if db[id]['id'] == long(view.size()):
 
 					# fold
 					rs = []
-					for r in buffer['f']:
+					for r in db[id]['f']:
 						rs.append(sublime.Region(int(r[0]), int(r[1])))
 					if len(rs):
 						view.fold(rs)
 
 					# selection
-					if len(buffer['s']) > 0:
+					if len(db[id]['s']) > 0:
 						view.sel().clear()
-					for r in buffer['s']:
-						view.sel().add(sublime.Region(int(r[0]), int(r[1])))
+						for r in db[id]['s']:
+							view.sel().add(sublime.Region(int(r[0]), int(r[1])))
 
 					# marks
 					rs = []
-					for r in buffer['m']:
+					for r in db[id]['m']:
 						rs.append(sublime.Region(int(r[0]), int(r[1])))
 					if len(rs):
 						view.add_regions("mark", rs, "mark", "dot", sublime.HIDDEN | sublime.PERSISTENT)
 
 					# bookmarks
 					rs = []
-					for r in buffer['b']:
+					for r in db[id]['b']:
 						rs.append(sublime.Region(int(r[0]), int(r[1])))
 					if len(rs):
 						view.add_regions("bookmarks", rs, "bookmarks", "bookmark", sublime.HIDDEN | sublime.PERSISTENT)
 
-				# color scheme
-				try:
-					if Pref.remember_color_scheme and buffer['c'] and view.settings().get('color_scheme') != buffer['c']:
-						view.settings().set('color_scheme', buffer['c'])
-				except:
-					pass
+					# color scheme
+					if Pref.remember_color_scheme and 'c' in db[id] and view.settings().get('color_scheme') != db[id]['c']:
+						view.settings().set('color_scheme', db[id]['c'])
 
-				# syntax
-				try:
-					if Pref.remember_syntax and buffer['x'] and view.settings().get('syntax') != buffer['x']:
-						view.settings().set('syntax', buffer['x'])
-				except:
-					pass
+					# syntax
+					if view.settings().get('syntax') != db[id]['x']:
+						view.settings().set('syntax', db[id]['x'])
 
 				# scroll
-				if int(sublime.version()) >= 2151 and buffer['l']:
-					view.set_viewport_position(tuple(buffer['l']), False)
-
-	def restore_scroll(self, view):
-		if view.is_loading():
-			sublime.set_timeout(lambda: self.restore_scroll(view), 100)
-		elif view.file_name():
-
-			hash_filename = hashlib.sha1(os.path.normpath(view.file_name().encode('utf-8'))).hexdigest()[:7]
-			hash_position = hash_filename+self.view_index(view)
-
-			if hash_position in buffers:
-				hash = hash_position
-			else:
-				hash = hash_filename
-			# print  view.viewport_position();
-			if hash in buffers:
-				buffer = buffers[hash]
-				if int(sublime.version()) >= 2151 and buffer['l']:
-					view.set_viewport_position(tuple(buffer['l']), False)
-
-	def view_index(self, view):
-		if not view.window():
-			return ''
-		window = view.window();
-		index = window.get_view_index(view)
-		if index != None and index != (0,0) and index != (0,-1) and index != (-1,-1):
-			return str(index)
-		else:
-			return '';
-
-	def _view_index(self, view):
-		return str(view.window().get_view_index(view) if view.window() else '')
-
+				if int(sublime.version()) >= 2151:
+					if index in db[id]['l']:
+						view.set_viewport_position(tuple(db[id]['l'][index]), False)
+					else:
+						view.set_viewport_position(tuple(db[id]['l']['0']), False)
 
 class buffer_scroll_forget(sublime_plugin.ApplicationCommand):
 	def run(self, what):
