@@ -90,7 +90,7 @@ class BufferScroll(sublime_plugin.EventListener):
 		self.save(view, 'on_post_save')
 
 	# saving
-	def save(self, view, where):
+	def save(self, view, where = 'unknow'):
 		if not view.file_name() or view.settings().get('is_widget'):
 			return
 
@@ -181,12 +181,12 @@ class BufferScroll(sublime_plugin.EventListener):
 			print 'writting to disk'
 		dump(db, file(database, "wb"))
 
-	def restore(self, view, where):
+	def restore(self, view, where = 'unknow'):
 		if not view.file_name() or view.settings().get('is_widget'):
 			return
 
 		if view.is_loading():
-			sublime.set_timeout(lambda: self.restore(view), 100)
+			sublime.set_timeout(lambda: self.restore(view, where), 100)
 		else:
 
 			id, index = self.view_id(view)
