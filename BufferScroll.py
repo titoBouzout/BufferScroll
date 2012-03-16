@@ -1,6 +1,7 @@
 import sublime, sublime_plugin
 from os.path import exists, normpath
 from hashlib import sha1
+from gzip import GzipFile
 
 try:
 	from cPickle import load, dump
@@ -11,10 +12,12 @@ debug = False
 
 # open
 
-database = sublime.packages_path()+'/User/BufferScroll.bin'
+database = sublime.packages_path()+'/User/BufferScroll.bin.gz'
 if exists(database):
 	try:
-		db = load(file(database, 'rb'));
+		gz = GzipFile(database, 'rb')
+		db = load(gz);
+		gz.close()
 	except:
 		db = {}
 else:
@@ -22,15 +25,28 @@ else:
 
 	# upgrade
 	from os import remove, rename
-	try:
-		remove(sublime.packages_path()+'/User/BufferScroll.sublime-settings')
-	except:
-		pass
-	try:
-		rename(sublime.packages_path()+'/User/BufferScrollUser.sublime-settings',
-		       sublime.packages_path()+'/User/BufferScroll.sublime-settings')
-	except:
-		pass
+
+	# from version 6 to 7
+	if exists(sublime.packages_path()+'/User/BufferScroll.bin'):
+		try:
+			db = load(file(sublime.packages_path()+'/User/BufferScroll.bin', 'rb'));
+		except:
+			db = {}
+		try:
+			remove(sublime.packages_path()+'/User/BufferScroll.bin')
+		except:
+			pass
+	# from older versions than 6
+	else:
+		try:
+			remove(sublime.packages_path()+'/User/BufferScroll.sublime-settings')
+		except:
+			pass
+		try:
+			rename(sublime.packages_path()+'/User/BufferScrollUser.sublime-settings',
+			       sublime.packages_path()+'/User/BufferScroll.sublime-settings')
+		except:
+			pass
 
 # settings
 
@@ -42,11 +58,10 @@ class Pref():
 		Pref.synch_marks 						= s.get('synch_marks', False)
 		Pref.synch_folds 						= s.get('synch_folds', False)
 		Pref.current_view						= -1
-		version                     = 6
+		version                     = 7
 		version_current             = s.get('version')
 		if version_current != version:
 			s.set('version', version)
-			db = {}
 			sublime.save_settings('BufferScroll.sublime-settings')
 
 Pref().load()
@@ -183,7 +198,9 @@ class BufferScroll(sublime_plugin.EventListener):
 	def write(self):
 		if debug:
 			print 'writting to disk'
-		dump(db, file(database, "wb"))
+		gz = GzipFile(database, 'wb')
+		dump(db, gz, -1)
+		gz.close()
 
 	def restore(self, view, where = 'unknow'):
 		if not view or not view.file_name() or view.settings().get('is_widget'):
