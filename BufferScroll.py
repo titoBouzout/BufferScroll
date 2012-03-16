@@ -318,6 +318,8 @@ class BufferScroll(sublime_plugin.EventListener):
 					_view.unfold(sublime.Region(0, _view.size()))
 					_view.fold(folds)
 
+BufferScrollAPI = BufferScroll()
+
 class BufferScrollForget(sublime_plugin.ApplicationCommand):
 	def run(self, what):
 		if what == 'color_scheme':
@@ -327,7 +329,7 @@ class BufferScrollReFold(sublime_plugin.WindowCommand):
 	def run(self):
 		view = sublime.active_window().active_view()
 		if view:
-			id, index = BufferScroll().view_id(view)
+			id, index = BufferScrollAPI.view_id(view)
 			if id in db:
 				if 'pf' in db[id]:
 					rs = []
