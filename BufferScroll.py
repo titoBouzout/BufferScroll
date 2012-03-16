@@ -86,80 +86,84 @@ class BufferScroll(sublime_plugin.EventListener):
 			self.save(view, 'on_close')
 
 	# save data for focused tab when saving
-	def on_post_save(self, view):
+	def on_pre_save(self, view):
 		self.save(view, 'on_post_save')
 
 	# saving
 	def save(self, view, where = 'unknow'):
-		if not view.file_name() or view.settings().get('is_widget'):
+		if not view or not view.file_name() or view.settings().get('is_widget'):
 			return
 
-		id, index = self.view_id(view)
-
-		if debug:
-			print '-----------------------------------'
-			print 'saving from '+where
-			print view.file_name()
-			print 'id '+id
-			print 'position in tabbar '+index
-
-
-		# creates an object for this view, if it is unknow to the package
-		if id not in db:
-			db[id] = {}
-			if 'l' not in db[id]:
-				db[id]['l'] = {}
-
-		# if the result of the new collected data is different
-		# from the old data, then will write to disk
-		old_db = dict(db[id])
-
-		# if the size of the view change outside the application skip restoration
-		# if not we will restore folds in funny positions, etc...
-		db[id]['id'] = long(view.size())
-
-		# scroll
-		if int(sublime.version()) >= 2151:
-			# save the scroll with "index" as the id ( usefull for cloned views )
-			db[id]['l'][index] = view.viewport_position()
-			# also save as default if no exists
-			if '0' not in db[id]['l']:
-				db[id]['l']['0'] = view.viewport_position()
-
-		# selections
-		db[id]['s'] = [[item.a, item.b] for item in view.sel()]
-
-		# # marks
-		db[id]['m'] = [[item.a, item.b] for item in view.get_regions("mark")]
-
-		# # bookmarks
-		db[id]['b'] = [[item.a, item.b] for item in view.get_regions("bookmarks")]
-
-		# previous folding save, to be able to refold
-		if 'f' in db[id] and list(db[id]['f']) != []:
-			db[id]['pf'] = list(db[id]['f'])
-
-		# folding
-		if int(sublime.version()) >= 2167:
-			db[id]['f'] = [[item.a, item.b] for item in view.folded_regions()]
+		if view.is_loading():
+			sublime.set_timeout(lambda: self.save(view, where), 100)
 		else:
-			folds = view.unfold(sublime.Region(0, view.size()))
-			db[id]['f'] = [[item.a, item.b] for item in folds]
-			view.fold(folds)
 
-		# color_scheme http://www.sublimetext.com/forum/viewtopic.php?p=25624#p25624
-		if Pref.remember_color_scheme:
-			db[id]['c'] = view.settings().get('color_scheme')
+			id, index = self.view_id(view)
 
-		# syntax
-		db[id]['x'] = view.settings().get('syntax')
-
-		# write to disk only if something changed
-		if old_db != db[id]:
 			if debug:
-				print id
-				print db[id];
-			sublime.set_timeout(lambda:self.write(), 0)
+				print '-----------------------------------'
+				print 'saving from '+where
+				print view.file_name()
+				print 'id '+id
+				print 'position in tabbar '+index
+
+
+			# creates an object for this view, if it is unknow to the package
+			if id not in db:
+				db[id] = {}
+				if 'l' not in db[id]:
+					db[id]['l'] = {}
+
+			# if the result of the new collected data is different
+			# from the old data, then will write to disk
+			old_db = dict(db[id])
+
+			# if the size of the view change outside the application skip restoration
+			# if not we will restore folds in funny positions, etc...
+			db[id]['id'] = long(view.size())
+
+			# scroll
+			if int(sublime.version()) >= 2151:
+				# save the scroll with "index" as the id ( usefull for cloned views )
+				db[id]['l'][index] = view.viewport_position()
+				# also save as default if no exists
+				if '0' not in db[id]['l']:
+					db[id]['l']['0'] = view.viewport_position()
+
+			# selections
+			db[id]['s'] = [[item.a, item.b] for item in view.sel()]
+
+			# marks
+			db[id]['m'] = [[item.a, item.b] for item in view.get_regions("mark")]
+
+			# bookmarks
+			db[id]['b'] = [[item.a, item.b] for item in view.get_regions("bookmarks")]
+
+			# previous folding save, to be able to refold
+			if 'f' in db[id] and list(db[id]['f']) != []:
+				db[id]['pf'] = list(db[id]['f'])
+
+			# folding
+			if int(sublime.version()) >= 2167:
+				db[id]['f'] = [[item.a, item.b] for item in view.folded_regions()]
+			else:
+				folds = view.unfold(sublime.Region(0, view.size()))
+				db[id]['f'] = [[item.a, item.b] for item in folds]
+				view.fold(folds)
+
+			# color_scheme http://www.sublimetext.com/forum/viewtopic.php?p=25624#p25624
+			if Pref.remember_color_scheme:
+				db[id]['c'] = view.settings().get('color_scheme')
+
+			# syntax
+			db[id]['x'] = view.settings().get('syntax')
+
+			# write to disk only if something changed
+			if old_db != db[id]:
+				if debug:
+					print id
+					print db[id];
+				sublime.set_timeout(lambda:self.write(), 0)
 
 	def view_id(self, view):
 		if not view.settings().has('buffer_scroll_name'):
@@ -182,7 +186,7 @@ class BufferScroll(sublime_plugin.EventListener):
 		dump(db, file(database, "wb"))
 
 	def restore(self, view, where = 'unknow'):
-		if not view.file_name() or view.settings().get('is_widget'):
+		if not view or not view.file_name() or view.settings().get('is_widget'):
 			return
 
 		if view.is_loading():
@@ -246,77 +250,81 @@ class BufferScroll(sublime_plugin.EventListener):
 						view.set_viewport_position(tuple(db[id]['l']['0']), False)
 
 	def synch(self, view):
-		if not view.file_name() or view.settings().get('is_widget'):
+		if not view or not view.file_name() or view.settings().get('is_widget'):
 			return
 
 		# if there is something to synch
 		if not Pref.synch_bookmarks and not Pref.synch_marks and not Pref.synch_folds:
 			return
 
-		# if there is clones
-		clones = []
-		for window in sublime.windows():
-			for _view in window.views():
-				if _view.file_name() == view.file_name() and view.id() != _view.id():
-					clones.append(_view)
-		if not clones:
-			return
+		if view.is_loading():
+			sublime.set_timeout(lambda: self.synch(view), 200)
+		else:
 
-		id, index = self.view_id(view)
+			# if there is clones
+			clones = []
+			for window in sublime.windows():
+				for _view in window.views():
+					if _view.file_name() == view.file_name() and view.id() != _view.id():
+						clones.append(_view)
+			if not clones:
+				return
 
-		if Pref.synch_bookmarks:
-			bookmarks = []
-			for r in db[id]['b']:
-				bookmarks.append(sublime.Region(int(r[0]), int(r[1])))
+			id, index = self.view_id(view)
 
-		if Pref.synch_marks:
-			marks = []
-			for r in db[id]['m']:
-				marks.append(sublime.Region(int(r[0]), int(r[1])))
+			if Pref.synch_bookmarks:
+				bookmarks = []
+				for r in db[id]['b']:
+					bookmarks.append(sublime.Region(int(r[0]), int(r[1])))
 
-		if Pref.synch_folds:
-			folds = []
-			for r in db[id]['f']:
-				folds.append(sublime.Region(int(r[0]), int(r[1])))
+			if Pref.synch_marks:
+				marks = []
+				for r in db[id]['m']:
+					marks.append(sublime.Region(int(r[0]), int(r[1])))
 
-		for _view in clones:
+			if Pref.synch_folds:
+				folds = []
+				for r in db[id]['f']:
+					folds.append(sublime.Region(int(r[0]), int(r[1])))
 
-			# bookmarks
-			if Pref.synch_bookmarks and bookmarks:
-				if bookmarks != _view.get_regions('bookmarks'):
-					if debug:
-						print 'synching bookmarks'
-					_view.add_regions("bookmarks", bookmarks, "bookmarks", "bookmark", sublime.HIDDEN | sublime.PERSISTENT)
-				else:
-					if debug:
-						print 'skipping synch of bookmarks these are equal'
+			for _view in clones:
 
-			# marks
-			if Pref.synch_marks and marks:
-				if marks != _view.get_regions('mark'):
-					if debug:
-						print 'synching marks'
-					_view.add_regions("mark", marks, "mark", "dot", sublime.HIDDEN | sublime.PERSISTENT)
-				else:
-					if debug:
-						print 'skipping synch of marks these are equal'
+				# bookmarks
+				if Pref.synch_bookmarks and bookmarks:
+					if bookmarks != _view.get_regions('bookmarks'):
+						if debug:
+							print 'synching bookmarks'
+						_view.add_regions("bookmarks", bookmarks, "bookmarks", "bookmark", sublime.HIDDEN | sublime.PERSISTENT)
+					else:
+						if debug:
+							print 'skipping synch of bookmarks these are equal'
 
-			# folds
-			if Pref.synch_folds and folds:
-				if int(sublime.version()) >= 2167:
-					if folds != _view.folded_regions():
+				# marks
+				if Pref.synch_marks and marks:
+					if marks != _view.get_regions('mark'):
+						if debug:
+							print 'synching marks'
+						_view.add_regions("mark", marks, "mark", "dot", sublime.HIDDEN | sublime.PERSISTENT)
+					else:
+						if debug:
+							print 'skipping synch of marks these are equal'
+
+				# folds
+				if Pref.synch_folds and folds:
+					if int(sublime.version()) >= 2167:
+						if folds != _view.folded_regions():
+							if debug:
+								print 'synching folds'
+							_view.unfold(sublime.Region(0, _view.size()))
+							_view.fold(folds)
+						else:
+							if debug:
+								print 'skipping synch of folds these are equal'
+					else:
 						if debug:
 							print 'synching folds'
 						_view.unfold(sublime.Region(0, _view.size()))
 						_view.fold(folds)
-					else:
-						if debug:
-							print 'skipping synch of folds these are equal'
-				else:
-					if debug:
-						print 'synching folds'
-					_view.unfold(sublime.Region(0, _view.size()))
-					_view.fold(folds)
 
 BufferScrollAPI = BufferScroll()
 
