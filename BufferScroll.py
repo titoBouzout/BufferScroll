@@ -36,6 +36,7 @@ else:
 			remove(sublime.packages_path()+'/User/BufferScroll.bin')
 		except:
 			pass
+
 	# from older versions than 6
 	else:
 		try:
@@ -102,11 +103,11 @@ class BufferScroll(sublime_plugin.EventListener):
 
 	# save data for focused tab when saving
 	def on_pre_save(self, view):
-		self.save(view, 'on_post_save')
+		self.save(view, 'on_pre_save')
 
 	# saving
 	def save(self, view, where = 'unknow'):
-		if not view or not view.file_name() or view.settings().get('is_widget'):
+		if view is None or not view.file_name() or view.settings().get('is_widget'):
 			return
 
 		if view.is_loading():
@@ -203,7 +204,7 @@ class BufferScroll(sublime_plugin.EventListener):
 		gz.close()
 
 	def restore(self, view, where = 'unknow'):
-		if not view or not view.file_name() or view.settings().get('is_widget'):
+		if view is None or not view.file_name() or view.settings().get('is_widget'):
 			return
 
 		if view.is_loading():
@@ -251,13 +252,13 @@ class BufferScroll(sublime_plugin.EventListener):
 					if len(rs):
 						view.add_regions("bookmarks", rs, "bookmarks", "bookmark", sublime.HIDDEN | sublime.PERSISTENT)
 
-					# color scheme
-					if Pref.remember_color_scheme and 'c' in db[id] and view.settings().get('color_scheme') != db[id]['c']:
-						view.settings().set('color_scheme', db[id]['c'])
+				# color scheme
+				if Pref.remember_color_scheme and 'c' in db[id] and view.settings().get('color_scheme') != db[id]['c']:
+					view.settings().set('color_scheme', db[id]['c'])
 
-					# syntax
-					if view.settings().get('syntax') != db[id]['x']:
-						view.settings().set('syntax', db[id]['x'])
+				# syntax
+				if view.settings().get('syntax') != db[id]['x']:
+					view.settings().set('syntax', db[id]['x'])
 
 				# scroll
 				if int(sublime.version()) >= 2151:
@@ -267,7 +268,7 @@ class BufferScroll(sublime_plugin.EventListener):
 						view.set_viewport_position(tuple(db[id]['l']['0']), False)
 
 	def synch(self, view):
-		if not view or not view.file_name() or view.settings().get('is_widget'):
+		if view is None or not view.file_name() or view.settings().get('is_widget'):
 			return
 
 		# if there is something to synch
