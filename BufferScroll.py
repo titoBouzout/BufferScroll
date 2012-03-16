@@ -354,7 +354,7 @@ class BufferScrollForget(sublime_plugin.ApplicationCommand):
 class BufferScrollReFold(sublime_plugin.WindowCommand):
 	def run(self):
 		view = sublime.active_window().active_view()
-		if view:
+		if view is not None:
 			id, index = BufferScrollAPI.view_id(view)
 			if id in db:
 				if 'pf' in db[id]:
@@ -363,3 +363,12 @@ class BufferScrollReFold(sublime_plugin.WindowCommand):
 						rs.append(sublime.Region(int(r[0]), int(r[1])))
 					if len(rs):
 						view.fold(rs)
+
+	def is_enabled(self):
+		view = sublime.active_window().active_view()
+		if view is not None and view.file_name():
+			id, index = BufferScrollAPI.view_id(view)
+			if id in db:
+				if 'pf' in db[id] and len(db[id]['pf']):
+					return True
+		return False
