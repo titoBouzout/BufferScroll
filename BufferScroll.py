@@ -1,7 +1,8 @@
 import sublime, sublime_plugin
-from os.path import exists, normpath
+from os.path import lexists, normpath
 from hashlib import sha1
 from gzip import GzipFile
+import thread
 
 try:
 	from cPickle import load, dump
@@ -12,22 +13,26 @@ debug = False
 
 # open
 
+db = {}
+
 database = sublime.packages_path()+'/User/BufferScroll.bin.gz'
-if exists(database):
+if lexists(database):
 	try:
-		gz = GzipFile(database, 'rb')
-		db = load(gz);
-		gz.close()
+		def loadDatabase():
+			global db
+			gz = GzipFile(database, 'rb')
+			db = load(gz);
+			gz.close()
+		thread.start_new_thread(loadDatabase, ())
 	except:
 		db = {}
 else:
-	db = {}
 
 	# upgrade
 	from os import remove, rename
 
 	# from version 6 to 7
-	if exists(sublime.packages_path()+'/User/BufferScroll.bin'):
+	if lexists(sublime.packages_path()+'/User/BufferScroll.bin'):
 		try:
 			db = load(file(sublime.packages_path()+'/User/BufferScroll.bin', 'rb'));
 		except:
@@ -65,11 +70,12 @@ class Pref():
 			s.set('version', version)
 			sublime.save_settings('BufferScroll.sublime-settings')
 
-Pref().load()
-s.add_on_change('remember_color_scheme', 	lambda:Pref().load())
-s.add_on_change('synch_bookmarks', 				lambda:Pref().load())
-s.add_on_change('synch_marks', 						lambda:Pref().load())
-s.add_on_change('synch_folds', 						lambda:Pref().load())
+Pref = Pref()
+Pref.load()
+s.add_on_change('remember_color_scheme', 	lambda:Pref.load())
+s.add_on_change('synch_bookmarks', 				lambda:Pref.load())
+s.add_on_change('synch_marks', 						lambda:Pref.load())
+s.add_on_change('synch_folds', 						lambda:Pref.load())
 
 class BufferScroll(sublime_plugin.EventListener):
 
@@ -179,7 +185,7 @@ class BufferScroll(sublime_plugin.EventListener):
 				if debug:
 					print id
 					print db[id];
-				sublime.set_timeout(lambda:self.write(), 0)
+				thread.start_new_thread(self.write, ())
 
 	def view_id(self, view):
 		if not view.settings().has('buffer_scroll_name'):
