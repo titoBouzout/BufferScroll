@@ -20,3 +20,8 @@ Forum Thread
 ------------------
 
 http://www.sublimetext.com/forum/viewtopic.php?f=5&t=3503
+
+License
+------------------
+
+See license.txt
