@@ -2,12 +2,9 @@ import sublime, sublime_plugin
 from os.path import lexists, normpath
 from hashlib import sha1
 from gzip import GzipFile
-import thread
+import thread, threading
+from cPickle import load, dump
 
-try:
-	from cPickle import load, dump
-except:
-	sublime.error_messsage('BufferScroll: Unable to load module cPickle.')
 
 debug = False
 
@@ -20,9 +17,12 @@ if lexists(database):
 	try:
 		def loadDatabase():
 			global db
-			gz = GzipFile(database, 'rb')
-			db = load(gz);
-			gz.close()
+			try:
+				gz = GzipFile(database, 'rb')
+				db = load(gz);
+				gz.close()
+			except:
+				db = {}
 		thread.start_new_thread(loadDatabase, ())
 	except:
 		db = {}
@@ -64,6 +64,7 @@ class Pref():
 		Pref.synch_marks 						= s.get('synch_marks', False)
 		Pref.synch_folds 						= s.get('synch_folds', False)
 		Pref.current_view						= -1
+		Pref.writting_to_disk				= False
 		version                     = 7
 		version_current             = s.get('version')
 		if version_current != version:
@@ -185,7 +186,9 @@ class BufferScroll(sublime_plugin.EventListener):
 				if debug:
 					print id
 					print db[id];
-				thread.start_new_thread(self.write, ())
+				if not Pref.writting_to_disk:
+					Pref.writting_to_disk = True
+					BufferScrollWriteToDisk().start()
 
 	def view_id(self, view):
 		if not view.settings().has('buffer_scroll_name'):
@@ -201,13 +204,6 @@ class BufferScroll(sublime_plugin.EventListener):
 			return str(index)
 		else:
 			return '0'
-
-	def write(self):
-		if debug:
-			print 'writting to disk'
-		gz = GzipFile(database, 'wb')
-		dump(db, gz, -1)
-		gz.close()
 
 	def restore(self, view, where = 'unknow'):
 		if view is None or not view.file_name() or view.settings().get('is_widget'):
@@ -349,6 +345,19 @@ class BufferScroll(sublime_plugin.EventListener):
 							print 'synching folds'
 						_view.unfold(sublime.Region(0, _view.size()))
 						_view.fold(folds)
+
+class BufferScrollWriteToDisk(threading.Thread):
+	def __init__(self):
+		threading.Thread.__init__(self)
+	def run(self):
+		if debug:
+			print 'writting to disk'
+		try:
+			gz = GzipFile(database, 'wb')
+			dump(db, gz, -1)
+			gz.close()
+		finally:
+			Pref.writting_to_disk = False
 
 BufferScrollAPI = BufferScroll()
 
