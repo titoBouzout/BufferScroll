@@ -188,7 +188,14 @@ class BufferScroll(sublime_plugin.EventListener):
 					print db[id];
 				if not Pref.writting_to_disk:
 					Pref.writting_to_disk = True
-					BufferScrollWriteToDisk().start()
+					#BufferScrollWriteToDisk().start()
+					sublime.set_timeout(lambda:self.write(), 0);
+
+	def write(self):
+		gz = GzipFile(database, 'wb')
+		dump(db, gz, -1)
+		gz.close()
+		Pref.writting_to_disk = False
 
 	def view_id(self, view):
 		if not view.settings().has('buffer_scroll_name'):
