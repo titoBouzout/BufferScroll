@@ -73,10 +73,7 @@ class Pref():
 
 Pref = Pref()
 Pref.load()
-s.add_on_change('remember_color_scheme', 	lambda:Pref.load())
-s.add_on_change('synch_bookmarks', 				lambda:Pref.load())
-s.add_on_change('synch_marks', 						lambda:Pref.load())
-s.add_on_change('synch_folds', 						lambda:Pref.load())
+s.add_on_change('reload', 	lambda:Pref.load())
 
 class BufferScroll(sublime_plugin.EventListener):
 
