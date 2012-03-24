@@ -472,7 +472,7 @@ def synch_scroll_loop():
 	while True:
 		if not Pref.synch_scroll_running:
 			sublime.set_timeout(lambda:synch_scroll(), 0)
-		time.sleep(0.3)
+		time.sleep(0.12)
 if not 'running_synch_scroll_loop' in globals():
 	running_synch_scroll_loop = True
 	thread.start_new_thread(synch_scroll_loop, ())
