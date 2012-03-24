@@ -2,9 +2,8 @@ import sublime, sublime_plugin
 from os.path import lexists, normpath
 from hashlib import sha1
 from gzip import GzipFile
-import thread, threading
+import thread
 from cPickle import load, dump
-
 
 debug = False
 
@@ -59,14 +58,20 @@ else:
 s = sublime.load_settings('BufferScroll.sublime-settings')
 class Pref():
 	def load(self):
-		Pref.remember_color_scheme 	= s.get('remember_color_scheme', False)
-		Pref.synch_bookmarks 				= s.get('synch_bookmarks', False)
-		Pref.synch_marks 						= s.get('synch_marks', False)
-		Pref.synch_folds 						= s.get('synch_folds', False)
-		Pref.current_view						= -1
-		Pref.writting_to_disk				= False
-		version                     = 7
-		version_current             = s.get('version')
+		Pref.remember_color_scheme 	              = s.get('remember_color_scheme', False)
+		Pref.synch_bookmarks 				              = s.get('synch_bookmarks', False)
+		Pref.synch_marks 						              = s.get('synch_marks', False)
+		Pref.synch_folds 						              = s.get('synch_folds', False)
+		Pref.synch_scroll 					              = s.get('synch_scroll', False)
+		Pref.current_view						              = -1
+		Pref.writting_to_disk				              = False
+
+		Pref.synch_scroll_running 								= False
+		Pref.synch_scroll_last_view_id						= 0
+		Pref.synch_scroll_last_view_position			= 0
+		Pref.synch_scroll_current_view_object 		= False
+		version                                   = 7
+		version_current                           = s.get('version')
 		if version_current != version:
 			s.set('version', version)
 			sublime.save_settings('BufferScroll.sublime-settings')
@@ -89,12 +94,14 @@ class BufferScroll(sublime_plugin.EventListener):
 	# or switching the projects, then we need to save the data on focus lost
 	def on_deactivated(self, view):
 		self.save(view, 'on_deactivated')
+		# synch bookmarks, marks, folds ( not scroll )
 		self.synch(view)
 
 	# track the current_view. See next event listener
 	def on_activated(self, view):
 		if view.file_name() and not view.settings().get('is_widget'):
 			Pref.current_view = view.id() # this id is not unique
+			Pref.synch_scroll_current_view_object = view
 
 	# save the data when background tabs are closed
 	# these that don't receive "on_deactivated"
@@ -205,7 +212,7 @@ class BufferScroll(sublime_plugin.EventListener):
 			window = sublime.active_window()
 		index = window.get_view_index(view)
 		if index and index != (0,0) and index != (0,-1) and index != (-1,-1):
-			return str(index)
+			return str(window.id())+str(index)
 		else:
 			return '0'
 
@@ -350,18 +357,85 @@ class BufferScroll(sublime_plugin.EventListener):
 						_view.unfold(sublime.Region(0, _view.size()))
 						_view.fold(folds)
 
-class BufferScrollWriteToDisk(threading.Thread):
-	def __init__(self):
-		threading.Thread.__init__(self)
-	def run(self):
-		if debug:
-			print 'writting to disk'
-		try:
-			gz = GzipFile(database, 'wb')
-			dump(db, gz, -1)
-			gz.close()
-		finally:
-			Pref.writting_to_disk = False
+
+	def synch_scroll(self):
+		if not Pref.synch_scroll or Pref.synch_scroll_running:
+			return
+		Pref.synch_scroll_running = True
+		view = Pref.synch_scroll_current_view_object
+		if not view:
+			Pref.synch_scroll_running = False
+			return
+		if view.is_loading():
+			Pref.synch_scroll_running = False
+			return
+
+		# if something changed
+		if Pref.synch_scroll_last_view_id != Pref.current_view:
+			Pref.synch_scroll_last_view_id = Pref.current_view
+			Pref.synch_scroll_last_view_position = 0
+		last_view_position = [view.viewport_position(), view.viewport_extent()]
+		if Pref.synch_scroll_last_view_position == last_view_position:
+			Pref.synch_scroll_running = False
+			return
+
+		Pref.synch_scroll_last_view_position = last_view_position
+		# if there is clones
+		clones = {}
+		clones_positions = []
+		for window in sublime.windows():
+			for _view in window.views():
+				if not _view.is_loading() and _view.file_name() == view.file_name() and view.id() != _view.id():
+					id, index = self.view_id(_view)
+					if index == '0':
+						index  = str(window.id())+'(0, 0)'
+					clones[index] = _view
+					clones_positions.append(index)
+		if not clones_positions:
+			Pref.synch_scroll_running = False
+			return
+
+		# current view
+		id, index = self.view_id(view)
+		if index == '0':
+			index  = str(view.window().id())+'(0, 0)'
+
+		clones[index] = view
+		clones_positions.append(index)
+		clones_positions.sort()
+
+		i = 0
+		while i < len(clones_positions):
+			position = clones_positions[i]
+			if position == index:
+				b = i-1
+				previous_view = index
+				while b > -1:
+					pwp, php = clones[previous_view].viewport_position()
+					#epw, eph = clones[previous_view].viewport_extent()
+					current_view = clones_positions[b]
+					cwp, chp = clones[current_view].viewport_position()
+					cpw, cph = clones[current_view].viewport_extent()
+					newh = php-cph if php-cph > 0 else 0
+					clones[current_view].set_viewport_position((cwp, newh))
+					previous_view = current_view
+					b -= 1
+				previous_view = index
+				i += 1
+				while i < len(clones_positions):
+					pwp, php = clones[previous_view].viewport_position()
+					#epw, eph = clones[previous_view].viewport_extent()
+					current_view = clones_positions[i]
+					cwp, chp = clones[current_view].viewport_position()
+					cpw, cph = clones[current_view].viewport_extent()
+					newh = php+cph
+					# print newh
+					clones[current_view].set_viewport_position((cwp, newh))
+					previous_view = current_view
+					i += 1
+				break
+			i += 1
+		Pref.synch_scroll_running = False
 
 BufferScrollAPI = BufferScroll()
 
@@ -391,3 +465,14 @@ class BufferScrollReFold(sublime_plugin.WindowCommand):
 				if 'pf' in db[id] and len(db[id]['pf']):
 					return True
 		return False
+
+import time
+def synch_scroll_loop():
+	synch_scroll = BufferScrollAPI.synch_scroll
+	while True:
+		if not Pref.synch_scroll_running:
+			sublime.set_timeout(lambda:synch_scroll(), 0)
+		time.sleep(0.3)
+if not 'running_synch_scroll_loop' in globals():
+	running_synch_scroll_loop = True
+	thread.start_new_thread(synch_scroll_loop, ())

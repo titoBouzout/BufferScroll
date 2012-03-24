@@ -5,5 +5,6 @@
 		/* allows to keep in synch bookmarks, marks or folds across cloned views */
 		"synch_bookmarks" : false,
 		"synch_folds" : false,
-		"synch_marks" : false
+		"synch_marks" : false,
+		"synch_scroll" : false
 	}
