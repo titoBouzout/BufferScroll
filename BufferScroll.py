@@ -4,6 +4,7 @@ from hashlib import sha1
 from gzip import GzipFile
 import thread
 from cPickle import load, dump
+import time
 
 debug = False
 
@@ -14,15 +15,9 @@ db = {}
 database = sublime.packages_path()+'/User/BufferScroll.bin.gz'
 if lexists(database):
 	try:
-		def loadDatabase():
-			global db
-			try:
-				gz = GzipFile(database, 'rb')
-				db = load(gz);
-				gz.close()
-			except:
-				db = {}
-		thread.start_new_thread(loadDatabase, ())
+		gz = GzipFile(database, 'rb')
+		db = load(gz);
+		gz.close()
 	except:
 		db = {}
 else:
@@ -64,12 +59,13 @@ class Pref():
 		Pref.synch_folds 						              = s.get('synch_folds', False)
 		Pref.synch_scroll 					              = s.get('synch_scroll', False)
 		Pref.current_view						              = -1
-		Pref.writting_to_disk				              = False
+		Pref.writing_to_disk				              = False
 
+		Pref.synch_data_running										= False
 		Pref.synch_scroll_running 								= False
 		Pref.synch_scroll_last_view_id						= 0
 		Pref.synch_scroll_last_view_position			= 0
-		Pref.synch_scroll_current_view_object 		= False
+		Pref.synch_scroll_current_view_object 		= None
 		version                                   = 7
 		version_current                           = s.get('version')
 		if version_current != version:
@@ -97,7 +93,6 @@ class BufferScroll(sublime_plugin.EventListener):
 		self.save(view, 'on_deactivated')
 		# synch bookmarks, marks, folds ( not scroll )
 		self.synch(view)
-		sublime.set_timeout(lambda:self.synch_scroll(view), 0)
 
 	# track the current_view. See next event listener
 	def on_activated(self, view):
@@ -189,19 +184,21 @@ class BufferScroll(sublime_plugin.EventListener):
 			db[id]['x'] = view.settings().get('syntax')
 
 			# write to disk only if something changed
-			if old_db != db[id]:
+			if old_db != db[id] or where == 'on_deactivated':
 				if debug:
 					print id
 					print db[id];
-				if not Pref.writting_to_disk:
-					Pref.writting_to_disk = True
+				if not Pref.writing_to_disk:
+					Pref.writing_to_disk = True
 					sublime.set_timeout(lambda:self.write(), 0);
 
 	def write(self):
+		if debug:
+			print 'writing to disk'
 		gz = GzipFile(database, 'wb')
 		dump(db, gz, -1)
 		gz.close()
-		Pref.writting_to_disk = False
+		Pref.writing_to_disk = False
 
 	def view_id(self, view):
 		if not view.settings().has('buffer_scroll_name'):
@@ -282,17 +279,25 @@ class BufferScroll(sublime_plugin.EventListener):
 					else:
 						view.set_viewport_position(tuple(db[id]['l']['0']), False)
 
-	def synch(self, view):
+	def synch(self, view = None, where = 'unknow'):
+		if view is None:
+			view = Pref.synch_scroll_current_view_object
+
 		if view is None or not view.file_name() or view.settings().get('is_widget'):
 			return
 
 		# if there is something to synch
 		if not Pref.synch_bookmarks and not Pref.synch_marks and not Pref.synch_folds:
 			return
+		Pref.synch_data_running = True
+
 
 		if view.is_loading():
+			Pref.synch_data_running = False
 			sublime.set_timeout(lambda: self.synch(view), 200)
 		else:
+
+			self.save(view, 'synch')
 
 			# if there is clones
 			clones = []
@@ -301,6 +306,7 @@ class BufferScroll(sublime_plugin.EventListener):
 					if _view.file_name() == view.file_name() and view.id() != _view.id():
 						clones.append(_view)
 			if not clones:
+				Pref.synch_data_running = False
 				return
 
 			id, index = self.view_id(view)
@@ -372,17 +378,17 @@ class BufferScroll(sublime_plugin.EventListener):
 						_view.unfold(sublime.Region(0, _view.size()))
 						_view.fold(folds)
 
+		Pref.synch_data_running = False
 
-	def synch_scroll(self, view = None):
+	def synch_scroll(self):
 		# if enabled and not running
 		if not Pref.synch_scroll or Pref.synch_scroll_running:
 			return
 		Pref.synch_scroll_running = True
 
 		# find current view
-		if view == None:
-			view = Pref.synch_scroll_current_view_object
-		if not view or view.is_loading():
+		view = Pref.synch_scroll_current_view_object
+		if view is None or view.is_loading():
 			Pref.synch_scroll_running = False
 			return
 
@@ -482,7 +488,6 @@ class BufferScrollReFold(sublime_plugin.WindowCommand):
 					return True
 		return False
 
-import time
 def synch_scroll_loop():
 	synch_scroll = BufferScrollAPI.synch_scroll
 	while True:
@@ -492,3 +497,13 @@ def synch_scroll_loop():
 if not 'running_synch_scroll_loop' in globals():
 	running_synch_scroll_loop = True
 	thread.start_new_thread(synch_scroll_loop, ())
+
+def synch_data_loop():
+	synch = BufferScrollAPI.synch
+	while True:
+		if not Pref.synch_data_running:
+			sublime.set_timeout(lambda:synch(None, 'thread'), 0)
+		time.sleep(0.5)
+if not 'running_synch_data_loop' in globals():
+	running_synch_data_loop = True
+	thread.start_new_thread(synch_data_loop, ())
