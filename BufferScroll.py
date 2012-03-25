@@ -415,9 +415,10 @@ class BufferScroll(sublime_plugin.EventListener):
 		previous_view = view
 		while b > -1:
 			current_view = clones[clones_positions[b]]
-			ppw, pph = current_view.text_to_layout(previous_view.line(previous_view.visible_region().a).b)
+			ppl, ppt = current_view.text_to_layout(previous_view.line(previous_view.visible_region().a).b)
 			cpw, cph = current_view.viewport_extent()
-			current_view.set_viewport_position((cpw, (pph-cph)+line))
+			left, old_top = current_view.viewport_position()
+			current_view.set_viewport_position((left, (ppt-cph)+line))
 			previous_view = current_view
 			b -= 1
 
@@ -426,8 +427,9 @@ class BufferScroll(sublime_plugin.EventListener):
 		previous_view = view
 		while i < lenght:
 			current_view = clones[clones_positions[i]]
-			position = current_view.text_to_layout(previous_view.line(previous_view.visible_region().b).a)
-			current_view.set_viewport_position((position[0], position[1]-3)) # 3 is the approximated height of the shadow of the tabbar. Removing the shadow Makes the text more readable
+			top = current_view.text_to_layout(previous_view.line(previous_view.visible_region().b).a)
+			left, old_top = current_view.viewport_position()
+			current_view.set_viewport_position((left, top[1]-3)) # 3 is the approximated height of the shadow of the tabbar. Removing the shadow Makes the text more readable
 			previous_view = current_view
 			i += 1
 
