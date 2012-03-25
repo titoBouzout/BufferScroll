@@ -359,9 +359,12 @@ class BufferScroll(sublime_plugin.EventListener):
 
 
 	def synch_scroll(self):
+		# if enabled and not running
 		if not Pref.synch_scroll or Pref.synch_scroll_running:
 			return
 		Pref.synch_scroll_running = True
+
+		# find current view
 		view = Pref.synch_scroll_current_view_object
 		if not view or view.is_loading():
 			Pref.synch_scroll_running = False
@@ -371,7 +374,7 @@ class BufferScroll(sublime_plugin.EventListener):
 		if Pref.synch_scroll_last_view_id != Pref.current_view:
 			Pref.synch_scroll_last_view_id = Pref.current_view
 			Pref.synch_scroll_last_view_position = 0
-		last_view_position = view.visible_region()
+		last_view_position = [view.visible_region(), view.viewport_position(), view.viewport_extent()]
 		if Pref.synch_scroll_last_view_position == last_view_position:
 			Pref.synch_scroll_running = False
 			return
@@ -397,41 +400,37 @@ class BufferScroll(sublime_plugin.EventListener):
 		if index == '0':
 			index  = str(view.window().id())+'(0, 0)'
 
+		# append current view to list of clones
 		clones[index] = view
 		clones_positions.append(index)
 		clones_positions.sort()
 
-		i = 0
-		while i < len(clones_positions):
-			position = clones_positions[i]
-			if position == index:
-				b = i-1
-				previous_view = index
-				while b > -1:
-					pwp, php = clones[previous_view].viewport_position()
-					#epw, eph = clones[previous_view].viewport_extent()
-					current_view = clones_positions[b]
-					cwp, chp = clones[current_view].viewport_position()
-					cpw, cph = clones[current_view].viewport_extent()
-					newh = php-cph if php-cph > 0 else 0
-					clones[current_view].set_viewport_position((cwp, newh))
-					previous_view = current_view
-					b -= 1
-				previous_view = index
-				i += 1
-				while i < len(clones_positions):
-					pwp, php = clones[previous_view].viewport_position()
-					#epw, eph = clones[previous_view].viewport_extent()
-					current_view = clones_positions[i]
-					cwp, chp = clones[current_view].viewport_position()
-					cpw, cph = clones[current_view].viewport_extent()
-					newh = php+cph
-					# print newh
-					clones[current_view].set_viewport_position((cwp, newh))
-					previous_view = current_view
-					i += 1
-				break
+		# find current view index
+		i = [i for i,x in enumerate(clones_positions) if x == index][0]
+
+		lenght = len(clones_positions)
+		line 	 = view.line_height()
+		# synch scroll for views to the left
+		b = i-1
+		previous_view = view
+		while b > -1:
+			current_view = clones[clones_positions[b]]
+			ppw, pph = current_view.text_to_layout(previous_view.line(previous_view.visible_region().a).b)
+			cpw, cph = current_view.viewport_extent()
+			current_view.set_viewport_position((cpw, (pph-cph)+line))
+			previous_view = current_view
+			b -= 1
+
+		# synch scroll for views to the right
+		i += 1
+		previous_view = view
+		while i < lenght:
+			current_view = clones[clones_positions[i]]
+			position = current_view.text_to_layout(previous_view.line(previous_view.visible_region().b).a)
+			current_view.set_viewport_position((position[0], position[1]-3)) # 3 is the approximated height of the shadow of the tabbar. Removing the shadow Makes the text more readable
+			previous_view = current_view
 			i += 1
+
 		Pref.synch_scroll_running = False
 
 BufferScrollAPI = BufferScroll()
@@ -469,7 +468,7 @@ def synch_scroll_loop():
 	while True:
 		if not Pref.synch_scroll_running:
 			sublime.set_timeout(lambda:synch_scroll(), 0)
-		time.sleep(0.12)
+		time.sleep(0.08)
 if not 'running_synch_scroll_loop' in globals():
 	running_synch_scroll_loop = True
 	thread.start_new_thread(synch_scroll_loop, ())

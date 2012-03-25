@@ -6,5 +6,7 @@
 		"synch_bookmarks" : false,
 		"synch_folds" : false,
 		"synch_marks" : false,
+
+		/* this allow to sync the scroll of the clones of a view */
 		"synch_scroll" : false
 	}
