@@ -2,7 +2,7 @@
 	{
 		"remember_color_scheme" : false,
 
-		/* allows to keep in synch bookmarks, marks or folds across cloned views */
+		/* allows to keep in sync bookmarks, marks or folds across cloned views */
 		"synch_bookmarks" : false,
 		"synch_folds" : false,
 		"synch_marks" : false,
