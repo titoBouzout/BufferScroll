@@ -363,10 +363,7 @@ class BufferScroll(sublime_plugin.EventListener):
 			return
 		Pref.synch_scroll_running = True
 		view = Pref.synch_scroll_current_view_object
-		if not view:
-			Pref.synch_scroll_running = False
-			return
-		if view.is_loading():
+		if not view or view.is_loading():
 			Pref.synch_scroll_running = False
 			return
 
@@ -374,12 +371,12 @@ class BufferScroll(sublime_plugin.EventListener):
 		if Pref.synch_scroll_last_view_id != Pref.current_view:
 			Pref.synch_scroll_last_view_id = Pref.current_view
 			Pref.synch_scroll_last_view_position = 0
-		last_view_position = [view.viewport_position(), view.viewport_extent()]
+		last_view_position = view.visible_region()
 		if Pref.synch_scroll_last_view_position == last_view_position:
 			Pref.synch_scroll_running = False
 			return
-
 		Pref.synch_scroll_last_view_position = last_view_position
+
 		# if there is clones
 		clones = {}
 		clones_positions = []
