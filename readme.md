@@ -9,6 +9,8 @@ Syncing features are disabled by default. You need to enable these via the prefe
 You may want to copy and paste your edited preferences to "Settings Users" located under the same sub-menu. To keep your preferences between updates.
 
 
+<img src="http://dl.dropbox.com/u/9303546/SublimeText/BufferScoll/sync-scroll.png" border="0"/>
+
 Installation
 ------------------
 
