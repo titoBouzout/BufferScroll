@@ -21,6 +21,12 @@ Source-code
 
 https://github.com/SublimeText/BufferScroll
 
+Bugs
+------------------
+
+For some reason sublime API is not restoring scroll of xml/html documents, including: xml, tpl, html, xhtml
+See and vote: http://www.sublimetext.com/forum/viewtopic.php?f=3&t=6237&start=0
+
 Forum Thread
 ------------------
 
