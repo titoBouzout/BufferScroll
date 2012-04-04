@@ -381,9 +381,7 @@ class BufferScroll(sublime_plugin.EventListener):
 		Pref.synch_data_running = False
 
 	def synch_scroll(self):
-		# if enabled and not running
-		if not Pref.synch_scroll or Pref.synch_scroll_running:
-			return
+
 		Pref.synch_scroll_running = True
 
 		# find current view
@@ -495,7 +493,8 @@ class BufferScrollReFold(sublime_plugin.WindowCommand):
 def synch_scroll_loop():
 	synch_scroll = BufferScrollAPI.synch_scroll
 	while True:
-		if not Pref.synch_scroll_running:
+		if Pref.synch_scroll and not Pref.synch_scroll_running:
+			Pref.synch_scroll_running = True
 			sublime.set_timeout(lambda:synch_scroll(), 0)
 		time.sleep(0.08)
 if not 'running_synch_scroll_loop' in globals():
