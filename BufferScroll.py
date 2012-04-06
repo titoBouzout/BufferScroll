@@ -490,16 +490,16 @@ class BufferScrollReFold(sublime_plugin.WindowCommand):
 					return True
 		return False
 
-def synch_scroll_loop():
-	synch_scroll = BufferScrollAPI.synch_scroll
-	while True:
-		if Pref.synch_scroll and not Pref.synch_scroll_running:
-			Pref.synch_scroll_running = True
-			sublime.set_timeout(lambda:synch_scroll(), 0)
-		time.sleep(0.08)
-if not 'running_synch_scroll_loop' in globals():
-	running_synch_scroll_loop = True
-	thread.start_new_thread(synch_scroll_loop, ())
+# def synch_scroll_loop():
+# 	synch_scroll = BufferScrollAPI.synch_scroll
+# 	while True:
+# 		if Pref.synch_scroll and not Pref.synch_scroll_running:
+# 			Pref.synch_scroll_running = True
+# 			sublime.set_timeout(lambda:synch_scroll(), 0)
+# 		time.sleep(0.08)
+# if not 'running_synch_scroll_loop' in globals():
+# 	running_synch_scroll_loop = True
+# 	thread.start_new_thread(synch_scroll_loop, ())
 
 def synch_data_loop():
 	synch = BufferScrollAPI.synch
