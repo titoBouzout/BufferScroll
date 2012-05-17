@@ -58,6 +58,7 @@ class Pref():
 		Pref.synch_marks 						              = s.get('synch_marks', False)
 		Pref.synch_folds 						              = s.get('synch_folds', False)
 		Pref.synch_scroll 					              = s.get('synch_scroll', False)
+		Pref.typewriter_scrolling									= s.get('typewriter_scrolling', False)
 		Pref.current_view						              = -1
 		Pref.writing_to_disk				              = False
 
@@ -113,6 +114,15 @@ class BufferScroll(sublime_plugin.EventListener):
 	# save data for focused tab when saving
 	def on_pre_save(self, view):
 		self.save(view, 'on_pre_save')
+
+	# typewriter scrolling
+	def on_modified(self, view):
+		if Pref.typewriter_scrolling and len(view.sel()) == 1:
+			window = view.window();
+			if not window:
+				window = sublime.active_window()
+			view = window.active_view()
+			view.show_at_center(view.sel()[0].end())
 
 	# saving
 	def save(self, view, where = 'unknow'):

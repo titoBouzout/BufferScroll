@@ -8,6 +8,7 @@ Also, via preferences, allows to enable syncing of scroll, bookmarks, marks and 
 Syncing features are disabled by default. You need to enable these via the preferences. Main menu -> Preferences -> Package Settings -> BufferScroll -> Settings Default.
 You may want to copy and paste your edited preferences to "Settings Users" located under the same sub-menu. To keep your preferences between updates.
 
+Requested by Kensai this package now provides "typewriter scrolling":  The line you work with is automatically the vertical center of the screen.
 
 <img src="http://dl.dropbox.com/u/9303546/SublimeText/BufferScoll/sync-scroll.png" border="0"/>
 
