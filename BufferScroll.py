@@ -117,7 +117,7 @@ class BufferScroll(sublime_plugin.EventListener):
 
 	# typewriter scrolling
 	def on_modified(self, view):
-		if Pref.typewriter_scrolling and len(view.sel()) == 1:
+		if Pref.typewriter_scrolling and len(view.sel()) == 1 and not view.settings().get('is_widget') and not view.is_scratch():
 			window = view.window();
 			if not window:
 				window = sublime.active_window()
@@ -304,7 +304,7 @@ class BufferScroll(sublime_plugin.EventListener):
 
 		if view.is_loading():
 			Pref.synch_data_running = False
-			sublime.set_timeout(lambda: self.synch(view), 200)
+			sublime.set_timeout(lambda: self.synch(view, where), 200)
 		else:
 
 			self.save(view, 'synch')
