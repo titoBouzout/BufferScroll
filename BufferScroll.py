@@ -82,7 +82,32 @@ class BufferScroll(sublime_plugin.EventListener):
 	# restore on load for new opened tabs or previews.
 	def on_load(self, view):
 		self.restore(view, 'on_load')
+# print 'on_load'
+# print view.buffer_id()
 
+# for window in sublime.windows():
+# 	for _view in window.views():
+# 		if not _view.is_loading() and _view.file_name() == view.file_name() and view.buffer_id() != _view.buffer_id():
+# 			print 'clone found'
+# 			print 'previous id = '
+# 			print _view.buffer_id()
+# 			print 'currnet id'
+# 			print view.buffer_id()
+
+# 			previous_window = view.window();
+# 			if not previous_window:
+# 				previous_window = sublime.active_window()
+# 			index = previous_window.get_view_index(view)
+# 			previous_window.focus_view(view)
+
+# 			clone_window = _view.window();
+# 			if not clone_window:
+# 				clone_window = sublime.active_window()
+# 			clone_window.focus_view(_view)
+# 			clone_window.run_command('clone_file')
+# 			previous_window.set_view_index(clone_window.active_view(), 0, 0)
+# 			previous_window.set_view_index(clone_window.active_view(), index[0], index[1])
+# 			return
 	# restore on load for cloned views
 	def on_clone(self, view):
 		self.restore(view, 'on_clone')
