@@ -23,7 +23,7 @@ if lexists(database):
 else:
 
 	# upgrade
-	from os import remove, rename
+	from os import remove
 
 	# database in User package -> Database in Settings dir
 	if lexists(sublime.packages_path()+'/User/BufferScroll.bin.gz'):
@@ -46,17 +46,6 @@ else:
 		except:
 			pass
 
-	# from older versions than 6
-	else:
-		try:
-			remove(sublime.packages_path()+'/User/BufferScroll.sublime-settings')
-		except:
-			pass
-		try:
-			rename(sublime.packages_path()+'/User/BufferScrollUser.sublime-settings',
-			       sublime.packages_path()+'/User/BufferScroll.sublime-settings')
-		except:
-			pass
 
 # settings
 
