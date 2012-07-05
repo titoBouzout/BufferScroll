@@ -12,7 +12,7 @@ debug = False
 
 db = {}
 
-database = sublime.packages_path()+'/User/BufferScroll.bin.gz'
+database = sublime.packages_path()+'/../Settings/BufferScroll.bin.gz'
 if lexists(database):
 	try:
 		gz = GzipFile(database, 'rb')
@@ -24,6 +24,16 @@ else:
 
 	# upgrade
 	from os import remove, rename
+
+	# database in User package -> Database in Settings dir
+	if lexists(sublime.packages_path()+'/User/BufferScroll.bin.gz'):
+		try:
+			gz = GzipFile(sublime.packages_path()+'/User/BufferScroll.bin.gz')
+			db = load(gz)
+			gz.close()
+			remove(sublime.packages_path()+'/User/BufferScroll.bin.gz')
+		except:
+			db = {}
 
 	# from version 6 to 7
 	if lexists(sublime.packages_path()+'/User/BufferScroll.bin'):
