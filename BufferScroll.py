@@ -1,5 +1,5 @@
 import sublime, sublime_plugin
-from os.path import lexists, normpath
+from os.path import lexists, normpath, dirname
 from hashlib import sha1
 from gzip import GzipFile
 import thread
@@ -12,7 +12,7 @@ debug = False
 
 db = {}
 
-database = sublime.packages_path()+'/../Settings/BufferScroll.bin.gz'
+database = dirname(sublime.packages_path())+'/Settings/BufferScroll.bin.gz'
 if lexists(database):
 	try:
 		gz = GzipFile(database, 'rb')
