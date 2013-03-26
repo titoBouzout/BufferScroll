@@ -25,9 +25,9 @@ https://github.com/SublimeText/BufferScroll
 
 # Bugs
 
- * The application does not have an event listener for when you switching, opening and closing projects, and close windows, then this package can't save the data for the focused files. Also, by not providing these listeners, this package has suboptimal methods for saving it's data. Such listening change of views, focus lost, file closing, saving, etc.
+ * The application does not have an event listener for when you swtich, open or close projects, and windows, then this package can't save the data for the focused files. By not providing these listeners, this package has suboptimal methods for saving it's data. Such listening change of views, focus lost, file closing, saving, etc.
  * For some reason sublime API is not restoring scroll of xml/html documents, including: xml, tpl, html, xhtml See: http://www.sublimetext.com/forum/viewtopic.php?f=3&t=6237&start=0 Also this will and is causing problems for these that use the build screeen with F4. Also, is causing another problem, that you can't request to sublime to open a file at a given row, because this plugin will overwrite the scrolled line. http://www.sublimetext.com/forum/viewtopic.php?f=5&t=3503&start=20#p22324
- * Again, there is no event listener for when a view is scrolled, then this package, has another suboptimal way of listening for changes of scroll, such tracking the scroll every x time.
+ * There is no event listener for when a view is scrolled, then this package, has another suboptimal way of listening for changes of scroll, such tracking the scroll every x time.
 
 
 # Forum Thread
