@@ -47,6 +47,7 @@ class Pref():
 		Pref.synch_scroll 					              = s.get('synch_scroll', False)
 		Pref.typewriter_scrolling									= s.get('typewriter_scrolling', False)
 		Pref.use_animations												= s.get('use_animations', False)
+		Pref.i_use_cloned_views										= s.get('i_use_cloned_views', False)
 		Pref.current_view						              = -1
 		Pref.writing_to_disk				              = False
 
@@ -264,7 +265,7 @@ class BufferScroll(sublime_plugin.EventListener):
 					print(view.viewport_position());
 					print('setting view port position to');
 				# HACK I HAD TO DELAY THE RESTORATION BECAUSE set_viewport_position does not work here.
-				if index in db[id]['l']:
+				if Pref.i_use_cloned_views and index in db[id]['l']:
 					if debug:
 						print(tuple(db[id]['l'][index]))
 					view.set_viewport_position(tuple(db[id]['l'][index]), Pref.use_animations)
