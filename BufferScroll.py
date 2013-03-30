@@ -31,6 +31,12 @@ def plugin_loaded():
 	Pref.load()
 	s.add_on_change('reload', 	lambda:Pref.load())
 
+	# TODO the application is not sendinng on_load when opening a window,
+	# then there is this hack which will simulate on_load when you open the application
+	# since this is just a hack, there is a terrible noticeable delay, which just sucks, thank you.
+	for view in sublime.active_window().views():
+		BufferScrollAPI.on_load(view)
+
 	# threads listening scroll, and waiting to set data on focus change
 	if not 'running_synch_data_loop' in globals():
 		global running_synch_data_loop
@@ -269,7 +275,7 @@ class BufferScroll(sublime_plugin.EventListener):
 					print('current view.viewport_position()')
 					print(view.viewport_position());
 					print('setting view port position to');
-				# HACK I HAD TO DELAY THE RESTORATION BECAUSE set_viewport_position does not work here.
+				# TODO HACK I HAD TO DELAY THE RESTORATION BECAUSE set_viewport_position does not work here.
 				if Pref.i_use_cloned_views and index in db[id]['l']:
 					if debug:
 						print(tuple(db[id]['l'][index]))
