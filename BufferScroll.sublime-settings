@@ -9,13 +9,13 @@
 		"synch_marks" : false,
 
 		/* this allow to sync the scroll of the clones of a view */
-		"synch_scroll" : true,
+		"synch_scroll" : false,
 
 		/* The line you work with is automatically the vertical center of the screen. */
 		"typewriter_scrolling": false,
 
 		/* ST has animations for when scrolling, these are disabled by default */
-		"use_animations": false,
+		"use_animations": true,
 
 		/* the same file, can have many different data saved depending the position of the file in the application (example file.txt in window1 has scroll line 30, file.txt in window2 has scroll in line 40) -
 		If you don't use cloned views, set this to false, to always restore the last scroll position */

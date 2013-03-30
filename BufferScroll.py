@@ -1,5 +1,6 @@
 import sublime, sublime_plugin
 from os.path import lexists, normpath, dirname
+from os import makedirs
 from hashlib import sha1
 from gzip import GzipFile
 import _thread as thread
@@ -13,6 +14,10 @@ def plugin_loaded():
 	# open
 	db = {}
 	database = dirname(sublime.packages_path())+'/Settings/BufferScroll.bin.gz'
+	try:
+		makedirs(dirname(database))
+	except:
+		pass
 	try:
 		gz = GzipFile(database, 'rb')
 		db = load(gz);
