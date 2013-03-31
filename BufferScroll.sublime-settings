@@ -15,11 +15,21 @@
 		"typewriter_scrolling": false,
 
 		/* ST has animations for when scrolling, these are disabled by default */
-		"use_animations": true,
+		"use_animations": false,
 
 		/* the same file, can have many different data saved depending the position of the file in the application (example file.txt in window1 has scroll line 30, file.txt in window2 has scroll in line 40) -
 		If you don't use cloned views, set this to false, to always restore the last scroll position */
+		"i_use_cloned_views": false,
 
-		"i_use_cloned_views": false
+		/* any syntax specific settings you want.. o_O (Note: lowercase syntax names)*/
+
+			"plain text":	{
+				"typewriter_scrolling": false
+			},
+
+			"python":	{
+				"use_animations": false
+			}
+			/* etc */
 
 	}

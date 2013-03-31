@@ -6,9 +6,10 @@ from gzip import GzipFile
 import _thread as thread
 from pickle import load, dump
 import time
+from os.path import basename
 
 def plugin_loaded():
-	global debug, database, db, Pref, s
+	global debug, database, Pref, BufferScrollAPI, db, s
 	debug = False
 
 	# open
@@ -31,11 +32,13 @@ def plugin_loaded():
 	Pref.load()
 	s.add_on_change('reload', 	lambda:Pref.load())
 
+	BufferScrollAPI = BufferScroll()
+
 	# TODO the application is not sendinng on_load when opening a window,
 	# then there is this hack which will simulate on_load when you open the application
 	# since this is just a hack, there is a terrible noticeable delay, which just sucks, thank you.
-	for view in sublime.active_window().views():
-		BufferScrollAPI.on_load(view)
+
+	BufferScrollAPI.init_()
 
 	# threads listening scroll, and waiting to set data on focus change
 	if not 'running_synch_data_loop' in globals():
@@ -59,6 +62,7 @@ class Pref():
 		Pref.typewriter_scrolling									= s.get('typewriter_scrolling', False)
 		Pref.use_animations												= s.get('use_animations', False)
 		Pref.i_use_cloned_views										= s.get('i_use_cloned_views', False)
+
 		Pref.current_view						              = -1
 		Pref.writing_to_disk				              = False
 
@@ -73,7 +77,32 @@ class Pref():
 			s.set('version', version)
 			sublime.save_settings('BufferScroll.sublime-settings')
 
+	# syntax specific settings
+	def get(self, type, view):
+
+		if view.settings().has('bs_sintax'):
+			syntax = view.settings().get('bs_sintax')
+		else:
+			syntax = view.settings().get('syntax')
+			syntax = basename(syntax).replace('.tmLanguage', '').lower() if syntax != None else "plain text"
+			view.settings().set('bs_sintax', syntax);
+
+		if hasattr(Pref, syntax) and type in getattr(Pref, syntax):
+			return getattr(Pref, syntax)[type];
+		elif hasattr(Pref, syntax) and type not in getattr(Pref, syntax):
+			return getattr(Pref, type)
+		elif s.has(syntax):
+			setattr(Pref, syntax, s.get(syntax))
+			self.get(type, view);
+		else:
+			return getattr(Pref, type)
+
 class BufferScroll(sublime_plugin.EventListener):
+
+	def init_(self):
+		for window in  sublime.windows():
+			for view in window.views():
+				self.on_load(view)
 
 	# restore on load for new opened tabs or previews.
 	def on_load(self, view):
@@ -83,8 +112,8 @@ class BufferScroll(sublime_plugin.EventListener):
 	def on_clone(self, view):
 		self.restore(view, 'on_clone')
 
-	# the application is not sending "on_close" event when closing
-	# or switching the projects, then we need to save the data on focus lost
+	# TODO STBUG the application is not sending "on_close" event when closings
+	# or switching the projects, then we need to save the data on focus losts
 	def on_deactivated(self, view):
 		#print 'on_deactivated'
 		self.save(view, 'on_deactivated')
@@ -98,7 +127,7 @@ class BufferScroll(sublime_plugin.EventListener):
 			Pref.current_view = view.id() # this id is not unique
 			Pref.synch_scroll_current_view_object = view
 
-	# save the data when background tabs are closed
+	# TODO STBUG save the data when background tabs are closed
 	# these that don't receive "on_deactivated"
 	def on_pre_close(self, view):
 		# current_view will receive event on_deactivated ( when closing )
@@ -113,12 +142,15 @@ class BufferScroll(sublime_plugin.EventListener):
 
 	# typewriter scrolling
 	def on_modified(self, view):
-		if Pref.typewriter_scrolling and len(view.sel()) == 1 and not view.settings().get('is_widget') and not view.is_scratch():
+		if Pref.get('typewriter_scrolling', view) and len(view.sel()) == 1 and not view.settings().get('is_widget') and not view.is_scratch():
+			# TODO STBUG if the view is in a column, for some reason the parameter view, is not correct. This fix it:s
 			window = view.window();
 			if not window:
 				window = sublime.active_window()
 			view = window.active_view()
 			view.show_at_center(view.sel()[0].end())
+			if debug:
+				print ("showing at center.. OMG, another bug?..")
 
 	# saving
 	def save(self, view, where = 'unknow'):
@@ -176,7 +208,7 @@ class BufferScroll(sublime_plugin.EventListener):
 			db[id]['f'] = [[item.a, item.b] for item in view.folded_regions()]
 
 			# color_scheme http://www.sublimetext.com/forum/viewtopic.php?p=25624#p25624
-			if Pref.remember_color_scheme:
+			if Pref.get('remember_color_scheme', view):
 				db[id]['c'] = view.settings().get('color_scheme')
 
 			# syntax
@@ -263,7 +295,7 @@ class BufferScroll(sublime_plugin.EventListener):
 						view.add_regions("bookmarks", rs, "bookmarks", "bookmark", sublime.HIDDEN | sublime.PERSISTENT)
 
 				# color scheme
-				if Pref.remember_color_scheme and 'c' in db[id] and view.settings().get('color_scheme') != db[id]['c']:
+				if Pref.get('remember_color_scheme', view) and 'c' in db[id] and view.settings().get('color_scheme') != db[id]['c']:
 					view.settings().set('color_scheme', db[id]['c'])
 
 				# syntax
@@ -276,16 +308,16 @@ class BufferScroll(sublime_plugin.EventListener):
 					print(view.viewport_position());
 					print('setting view port position to');
 				# TODO HACK I HAD TO DELAY THE RESTORATION BECAUSE set_viewport_position does not work here.
-				if Pref.i_use_cloned_views and index in db[id]['l']:
+				if Pref.get('i_use_cloned_views', view) and index in db[id]['l']:
 					if debug:
 						print(tuple(db[id]['l'][index]))
-					view.set_viewport_position(tuple(db[id]['l'][index]), Pref.use_animations)
-					sublime.set_timeout(lambda: view.set_viewport_position(tuple(db[id]['l'][index]), Pref.use_animations), 0)
+					view.set_viewport_position(tuple(db[id]['l'][index]), Pref.get('use_animations', view))
+					sublime.set_timeout(lambda: view.set_viewport_position(tuple(db[id]['l'][index]), Pref.get('use_animations', view)), 0)
 				else:
 					if debug:
 						print(tuple(db[id]['l']['0']))
-					view.set_viewport_position(tuple(db[id]['l']['0']), Pref.use_animations)
-					sublime.set_timeout(lambda: view.set_viewport_position(tuple(db[id]['l']['0']), Pref.use_animations), 0)
+					view.set_viewport_position(tuple(db[id]['l']['0']), Pref.get('use_animations', view))
+					sublime.set_timeout(lambda: view.set_viewport_position(tuple(db[id]['l']['0']), Pref.get('use_animations', view)), 0)
 				if debug:
 					print('current view.viewport_position()')
 					print(view.viewport_position()); # THIS LIES
@@ -298,7 +330,7 @@ class BufferScroll(sublime_plugin.EventListener):
 			return
 
 		# if there is something to synch
-		if not Pref.synch_bookmarks and not Pref.synch_marks and not Pref.synch_folds:
+		if not Pref.get('synch_bookmarks', view) and not Pref.get('synch_marks', view) and not Pref.get('synch_folds', view):
 			return
 		Pref.synch_data_running = True
 
@@ -324,17 +356,17 @@ class BufferScroll(sublime_plugin.EventListener):
 
 			#print 'sync bookmarks, marks, folds'
 
-			if Pref.synch_bookmarks:
+			if Pref.get('synch_bookmarks', view):
 				bookmarks = []
 				for r in db[id]['b']:
 					bookmarks.append(sublime.Region(int(r[0]), int(r[1])))
 
-			if Pref.synch_marks:
+			if Pref.get('synch_marks', view):
 				marks = []
 				for r in db[id]['m']:
 					marks.append(sublime.Region(int(r[0]), int(r[1])))
 
-			if Pref.synch_folds:
+			if Pref.get('synch_folds', view):
 				folds = []
 				for r in db[id]['f']:
 					folds.append(sublime.Region(int(r[0]), int(r[1])))
@@ -342,7 +374,7 @@ class BufferScroll(sublime_plugin.EventListener):
 			for _view in clones:
 
 				# bookmarks
-				if Pref.synch_bookmarks:
+				if Pref.get('synch_bookmarks', _view):
 					if bookmarks:
 						if bookmarks != _view.get_regions('bookmarks'):
 							_view.erase_regions("bookmarks")
@@ -356,7 +388,7 @@ class BufferScroll(sublime_plugin.EventListener):
 						_view.erase_regions("bookmarks")
 
 				# marks
-				if Pref.synch_marks:
+				if Pref.get('synch_marks', _view):
 					if marks:
 						if marks != _view.get_regions('mark'):
 							_view.erase_regions("mark")
@@ -370,7 +402,7 @@ class BufferScroll(sublime_plugin.EventListener):
 						_view.erase_regions("mark")
 
 				# folds
-				if Pref.synch_folds:
+				if Pref.get('synch_folds', _view):
 					if folds:
 						if folds != _view.folded_regions():
 							if debug:
@@ -391,7 +423,7 @@ class BufferScroll(sublime_plugin.EventListener):
 
 		# find current view
 		view = Pref.synch_scroll_current_view_object
-		if view is None or view.is_loading():
+		if view is None or view.is_loading() or not Pref.get('synch_scroll', view):
 			Pref.synch_scroll_running = False
 			return
 
@@ -462,8 +494,6 @@ class BufferScroll(sublime_plugin.EventListener):
 
 		Pref.synch_scroll_running = False
 
-BufferScrollAPI = BufferScroll()
-
 class BufferScrollForget(sublime_plugin.ApplicationCommand):
 	def run(self, what):
 		if what == 'color_scheme':
@@ -494,7 +524,7 @@ class BufferScrollReFold(sublime_plugin.WindowCommand):
 def synch_scroll_loop():
 	synch_scroll = BufferScrollAPI.synch_scroll
 	while True:
-		if Pref.synch_scroll and not Pref.synch_scroll_running:
+		if not Pref.synch_scroll_running:
 			Pref.synch_scroll_running = True
 			sublime.set_timeout(lambda:synch_scroll(), 0)
 		time.sleep(0.08)
