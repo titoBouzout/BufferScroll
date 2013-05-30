@@ -24,7 +24,7 @@
 		/* any syntax specific settings you want.. o_O (Note: lowercase syntax names)*/
 
 			"plain text":	{
-				"typewriter_scrolling": false
+				"synch_scroll" : false
 			},
 
 			"python":	{

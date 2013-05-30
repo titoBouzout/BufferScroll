@@ -8,6 +8,8 @@ from pickle import load, dump
 import time
 from os.path import basename
 
+# import inspect
+
 def plugin_loaded():
 	global debug, database, Pref, BufferScrollAPI, db, s
 	debug = False
@@ -100,9 +102,9 @@ class Pref():
 class BufferScroll(sublime_plugin.EventListener):
 
 	def init_(self):
+		self.on_load(sublime.active_window().active_view())
 		for window in  sublime.windows():
-			for view in window.views():
-				self.on_load(view)
+			self.on_load(window.active_view())
 
 	# restore on load for new opened tabs or previews.
 	def on_load(self, view):
@@ -126,6 +128,8 @@ class BufferScroll(sublime_plugin.EventListener):
 			#print 'on_activated'
 			Pref.current_view = view.id() # this id is not unique
 			Pref.synch_scroll_current_view_object = view
+			#print(inspect.getmembers(view.rowcol))
+			# print(view.file_name())
 
 	# TODO STBUG save the data when background tabs are closed
 	# these that don't receive "on_deactivated"
