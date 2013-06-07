@@ -36,10 +36,6 @@ def plugin_loaded():
 
 	BufferScrollAPI = BufferScroll()
 
-	# TODO the application is not sendinng on_load when opening a window,
-	# then there is this hack which will simulate on_load when you open the application
-	# since this is just a hack, there is a terrible noticeable delay, which just sucks, thank you.
-
 	BufferScrollAPI.init_()
 
 	# threads listening scroll, and waiting to set data on focus change
@@ -65,7 +61,7 @@ class Pref():
 		Pref.use_animations												= s.get('use_animations', False)
 		Pref.i_use_cloned_views										= s.get('i_use_cloned_views', False)
 
-		Pref.current_view						              = -1
+		Pref.current_view_id				              = -1
 		Pref.writing_to_disk				              = False
 
 		Pref.synch_data_running										= False
@@ -114,31 +110,25 @@ class BufferScroll(sublime_plugin.EventListener):
 	def on_clone(self, view):
 		self.restore(view, 'on_clone')
 
-	# TODO STBUG the application is not sending "on_close" event when closings
-	# or switching the projects, then we need to save the data on focus losts
+	# save data on focus lost
 	def on_deactivated(self, view):
-		#print 'on_deactivated'
-		self.save(view, 'on_deactivated')
-		# synch bookmarks, marks, folds ( not scroll )
-		self.synch_data(view)
+		window = view.window();
+		if not window:
+			window = sublime.active_window()
+		index = window.get_view_index(view)
+		if index != (-1, -1): # if the view was not closed
+			self.save(view, 'on_deactivated')
+			self.synch_data(view)
 
 	# track the current_view. See next event listener
 	def on_activated(self, view):
 		if view.file_name() and not view.settings().get('is_widget'):
-			#print 'on_activated'
-			Pref.current_view = view.id() # this id is not unique
+			Pref.current_view_id = view.id()
 			Pref.synch_scroll_current_view_object = view
-			#print(inspect.getmembers(view.rowcol))
-			# print(view.file_name())
 
-	# TODO STBUG save the data when background tabs are closed
-	# these that don't receive "on_deactivated"
+	# save data on close
 	def on_pre_close(self, view):
-		# current_view will receive event on_deactivated ( when closing )
-		# which provides more data than on_close
-		# for example a "get_view_index" ..
-		if Pref.current_view != view.id():
-			self.save(view, 'on_pre_close')
+		self.save(view, 'on_pre_close')
 
 	# save data for focused tab when saving
 	def on_pre_save(self, view):
@@ -153,8 +143,6 @@ class BufferScroll(sublime_plugin.EventListener):
 				window = sublime.active_window()
 			view = window.active_view()
 			view.show_at_center(view.sel()[0].end())
-			if debug:
-				print ("showing at center.. OMG, another bug?..")
 
 	# saving
 	def save(self, view, where = 'unknow'):
@@ -169,10 +157,10 @@ class BufferScroll(sublime_plugin.EventListener):
 
 			if debug:
 				print ('-----------------------------------')
-				print ('saving from '+where)
-				print (view.file_name())
-				print ('id '+id)
-				print ('position in tabbar '+index)
+				print ('SAVING from: '+where)
+				print ('file: '+view.file_name())
+				print ('id: '+id)
+				print ('position: '+index)
 
 
 			# creates an object for this view, if it is unknow to the package
@@ -188,21 +176,30 @@ class BufferScroll(sublime_plugin.EventListener):
 			# if not we will restore folds in funny positions, etc...
 			db[id]['id'] = int(view.size())
 
+			# scroll
 			if 'l' not in db[id]:
-					db[id]['l'] = {}
-			# save the scroll with "index" as the id ( usefull for cloned views )
+				db[id]['l'] = {}
+			# save the scroll with "index" as the id ( for cloned views )
 			db[id]['l'][index] = view.viewport_position()
 			# also save as default if no exists
 			db[id]['l']['0'] = view.viewport_position()
+			if debug:
+				print('viewport_position: '+str(view.viewport_position()))
 
 			# selections
 			db[id]['s'] = [[item.a, item.b] for item in view.sel()]
+			if debug:
+				print('selections: '+str(db[id]['s']))
 
 			# marks
 			db[id]['m'] = [[item.a, item.b] for item in view.get_regions("mark")]
+			if debug:
+				print('marks: '+str(db[id]['m']))
 
 			# bookmarks
 			db[id]['b'] = [[item.a, item.b] for item in view.get_regions("bookmarks")]
+			if debug:
+				print('bookmarks: '+str(db[id]['b']))
 
 			# previous folding save, to be able to refold
 			if 'f' in db[id] and list(db[id]['f']) != []:
@@ -210,19 +207,22 @@ class BufferScroll(sublime_plugin.EventListener):
 
 			# folding
 			db[id]['f'] = [[item.a, item.b] for item in view.folded_regions()]
+			if debug:
+				print('fold: '+str(db[id]['f']))
 
 			# color_scheme http://www.sublimetext.com/forum/viewtopic.php?p=25624#p25624
 			if Pref.get('remember_color_scheme', view):
 				db[id]['c'] = view.settings().get('color_scheme')
+				if debug:
+					print('color_scheme: '+str(db[id]['c']))
 
 			# syntax
 			db[id]['x'] = view.settings().get('syntax')
+			if debug:
+				print('syntax: '+str(db[id]['x']))
 
 			# write to disk only if something changed
 			if old_db != db[id] or where == 'on_deactivated':
-				if debug:
-					print (id)
-					print (db[id]);
 				if not Pref.writing_to_disk:
 					Pref.writing_to_disk = True
 					sublime.set_timeout(lambda:self.write(), 0);
@@ -259,15 +259,13 @@ class BufferScroll(sublime_plugin.EventListener):
 
 			if debug:
 				print ('-----------------------------------')
-				print ('restoring from '+where)
-				print (view.file_name())
-				print ('id '+id)
-				print ('position in tabbar '+index)
+				print ('RESTORING from: '+where)
+				print ('file: '+view.file_name())
+				print ('id: '+id)
+				print ('position: '+index)
 
 			if id in db:
-				if debug:
-					print('object to restore')
-					print(db[id]);
+
 				# if the view changed outside of the application, don't restore folds etc
 				if db[id]['id'] == int(view.size()):
 
@@ -277,12 +275,16 @@ class BufferScroll(sublime_plugin.EventListener):
 						rs.append(sublime.Region(int(r[0]), int(r[1])))
 					if len(rs):
 						view.fold(rs)
+						if debug:
+							print("fold: "+str(rs));
 
 					# selection
 					if len(db[id]['s']) > 0:
 						view.sel().clear()
 						for r in db[id]['s']:
 							view.sel().add(sublime.Region(int(r[0]), int(r[1])))
+						if debug:
+							print('selection: '+str(db[id]['s']));
 
 					# marks
 					rs = []
@@ -290,6 +292,8 @@ class BufferScroll(sublime_plugin.EventListener):
 						rs.append(sublime.Region(int(r[0]), int(r[1])))
 					if len(rs):
 						view.add_regions("mark", rs, "mark", "dot", sublime.HIDDEN | sublime.PERSISTENT)
+						if debug:
+							print('marks: '+str(db[id]['m']));
 
 					# bookmarks
 					rs = []
@@ -297,34 +301,36 @@ class BufferScroll(sublime_plugin.EventListener):
 						rs.append(sublime.Region(int(r[0]), int(r[1])))
 					if len(rs):
 						view.add_regions("bookmarks", rs, "bookmarks", "bookmark", sublime.HIDDEN | sublime.PERSISTENT)
+						if debug:
+							print('bookmarks: '+str(db[id]['b']));
 
 				# color scheme
 				if Pref.get('remember_color_scheme', view) and 'c' in db[id] and view.settings().get('color_scheme') != db[id]['c']:
 					view.settings().set('color_scheme', db[id]['c'])
+					if debug:
+						print('color scheme: '+str(db[id]['c']));
 
 				# syntax
 				if view.settings().get('syntax') != db[id]['x'] and lexists(sublime.packages_path()+'/../'+db[id]['x']):
 					view.settings().set('syntax', db[id]['x'])
+					if debug:
+						print('syntax: '+str(db[id]['x']));
 
 				# scroll
-				if debug:
-					print('current view.viewport_position()')
-					print(view.viewport_position());
-					print('setting view port position to');
-				# TODO HACK I HAD TO DELAY THE RESTORATION BECAUSE set_viewport_position does not work here.
 				if Pref.get('i_use_cloned_views', view) and index in db[id]['l']:
-					if debug:
-						print(tuple(db[id]['l'][index]))
-					view.set_viewport_position(tuple(db[id]['l'][index]), Pref.get('use_animations', view))
-					sublime.set_timeout(lambda: view.set_viewport_position(tuple(db[id]['l'][index]), Pref.get('use_animations', view)), 0)
+					position = tuple(db[id]['l'][index])
+					view.set_viewport_position(position, Pref.get('use_animations', view))
 				else:
-					if debug:
-						print(tuple(db[id]['l']['0']))
-					view.set_viewport_position(tuple(db[id]['l']['0']), Pref.get('use_animations', view))
-					sublime.set_timeout(lambda: view.set_viewport_position(tuple(db[id]['l']['0']), Pref.get('use_animations', view)), 0)
+					position = tuple(db[id]['l']['0'])
+					view.set_viewport_position(position, Pref.get('use_animations', view))
+				sublime.set_timeout(lambda: self.stupid_scroll(view, position), 0)
 				if debug:
-					print('current view.viewport_position()')
-					print(view.viewport_position()); # THIS LIES
+					print('scroll set: '+str(position));
+					print('supposed current scroll: '+str(view.viewport_position())); # THIS LIES
+
+	def stupid_scroll(self, view, position):
+		if not view.visible_region().contains(view.sel()[0]):
+			view.set_viewport_position(position, Pref.get('use_animations', view))
 
 	def synch_data(self, view = None, where = 'unknow'):
 		if view is None:
@@ -432,8 +438,8 @@ class BufferScroll(sublime_plugin.EventListener):
 			return
 
 		# if something changed
-		if Pref.synch_scroll_last_view_id != Pref.current_view:
-			Pref.synch_scroll_last_view_id = Pref.current_view
+		if Pref.synch_scroll_last_view_id != Pref.current_view_id:
+			Pref.synch_scroll_last_view_id = Pref.current_view_id
 			Pref.synch_scroll_last_view_position = 0
 		last_view_position = [view.visible_region(), view.viewport_position(), view.viewport_extent()]
 		if Pref.synch_scroll_last_view_position == last_view_position:
