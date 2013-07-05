@@ -122,7 +122,7 @@ class BufferScroll(sublime_plugin.EventListener):
 
 	# track the current_view. See next event listener
 	def on_activated(self, view):
-		if view.file_name() and not view.settings().get('is_widget'):
+		if not view.settings().get('is_widget'):
 			Pref.current_view_id = view.id()
 			Pref.synch_scroll_current_view_object = view
 
@@ -336,7 +336,7 @@ class BufferScroll(sublime_plugin.EventListener):
 		if view is None:
 			view = Pref.synch_scroll_current_view_object
 
-		if view is None or not view.file_name() or view.settings().get('is_widget'):
+		if view is None or view.settings().get('is_widget'):
 			return
 
 		# if there is something to synch
@@ -356,7 +356,7 @@ class BufferScroll(sublime_plugin.EventListener):
 			clones = []
 			for window in sublime.windows():
 				for _view in window.views():
-					if _view.file_name() == view.file_name() and view.id() != _view.id():
+					if _view.buffer_id() == view.buffer_id() and view.id() != _view.id():
 						clones.append(_view)
 			if not clones:
 				Pref.synch_data_running = False
@@ -441,7 +441,7 @@ class BufferScroll(sublime_plugin.EventListener):
 		if Pref.synch_scroll_last_view_id != Pref.current_view_id:
 			Pref.synch_scroll_last_view_id = Pref.current_view_id
 			Pref.synch_scroll_last_view_position = 0
-		last_view_position = [view.visible_region(), view.viewport_position(), view.viewport_extent()]
+		last_view_position = str([view.visible_region(), view.viewport_position(), view.viewport_extent()])
 		if Pref.synch_scroll_last_view_position == last_view_position:
 			Pref.synch_scroll_running = False
 			return
@@ -452,15 +452,13 @@ class BufferScroll(sublime_plugin.EventListener):
 		clones_positions = []
 		for window in sublime.windows():
 			for _view in window.views():
-				if not _view.is_loading() and _view.file_name() == view.file_name() and view.id() != _view.id():
+				if not _view.is_loading() and _view.buffer_id() == view.buffer_id() and view.id() != _view.id():
 					id, index = self.view_id(_view)
 					clones[index] = _view
 					clones_positions.append(index)
 		if not clones_positions:
 			Pref.synch_scroll_running = False
 			return
-
-		#print 'sync scroll'
 
 		# current view
 		id, index = self.view_id(view)
