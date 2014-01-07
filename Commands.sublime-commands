@@ -2,5 +2,13 @@
   {
     "caption": "Code Folding: Refold",
     "command": "buffer_scroll_re_fold"
+  },
+  {
+    "caption": "Code Folding: Select Folded",
+    "command": "buffer_scroll_fold_select_folded"
+  },
+  {
+    "caption": "Code Folding: Select Unfolded",
+    "command": "buffer_scroll_fold_select_unfolded"
   }
 ]

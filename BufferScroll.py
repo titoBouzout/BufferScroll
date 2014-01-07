@@ -162,7 +162,6 @@ class BufferScroll(sublime_plugin.EventListener):
 				print ('id: '+id)
 				print ('position: '+index)
 
-
 			# creates an object for this view, if it is unknow to the package
 			if id not in db:
 				db[id] = {}
@@ -528,6 +527,31 @@ class BufferScrollReFold(sublime_plugin.WindowCommand):
 				if 'pf' in db[id] and len(db[id]['pf']):
 					return True
 		return False
+
+class BufferScrollFoldSelectFolded(sublime_plugin.WindowCommand):
+	def run(self):
+		view = sublime.active_window().active_view()
+		if view is not None:
+			# folding
+			folds = [[item.a, item.b] for item in view.folded_regions()]
+			if folds:
+				view.sel().clear()
+				for fold in folds:
+					view.sel().add(sublime.Region(int(fold[0]), int(fold[1])))
+
+class BufferScrollFoldSelectUnfolded(sublime_plugin.WindowCommand):
+	def run(self):
+		view = sublime.active_window().active_view()
+		if view is not None:
+			# folding
+			folds = [[item.a, item.b] for item in view.folded_regions()]
+			if folds:
+				view.sel().clear()
+				prev = 0
+				for fold in folds:
+					view.sel().add(sublime.Region(prev, int(fold[0])))
+					prev = int(fold[1])
+				view.sel().add(sublime.Region(prev, view.size()))
 
 def synch_scroll_loop():
 	synch_scroll = BufferScrollAPI.synch_scroll
