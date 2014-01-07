@@ -11,6 +11,8 @@ Requested by Kensai this package now provides "typewriter scrolling":  The line 
 
 There is also a hidden feature "refold", if you unfolded code, you can select "refold" from the command palette. This will only work of course if you don't touch the code between the unfold and refold.
 
+Requested by  Binocular222 there is now option to select Folded/Unfolded regions.
+
 <img src="http://dl.dropbox.com/u/9303546/SublimeText/BufferScoll/sync-scroll.png" border="0"/>
 
 # Installation

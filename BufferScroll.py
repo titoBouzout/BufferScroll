@@ -542,16 +542,18 @@ class BufferScrollFoldSelectFolded(sublime_plugin.WindowCommand):
 class BufferScrollFoldSelectUnfolded(sublime_plugin.WindowCommand):
 	def run(self):
 		view = sublime.active_window().active_view()
-		if view is not None:
-			# folding
-			folds = [[item.a, item.b] for item in view.folded_regions()]
-			if folds:
-				view.sel().clear()
-				prev = 0
-				for fold in folds:
-					view.sel().add(sublime.Region(prev, int(fold[0])))
+		folds = [[item.a, item.b] for item in view.folded_regions()]
+		if folds:
+			view.sel().clear()
+			prev = 0
+			for fold in folds:
+				# sublime.message_dialog(self.view.substr(fold[0]))
+				view.sel().add(sublime.Region(prev, int(fold[0])))
+				if view.substr(fold[1]) == "\n":
+					prev = int(fold[1]) + 1
+				else:
 					prev = int(fold[1])
-				view.sel().add(sublime.Region(prev, view.size()))
+			view.sel().add(sublime.Region(prev, view.size()))
 
 def synch_scroll_loop():
 	synch_scroll = BufferScrollAPI.synch_scroll
