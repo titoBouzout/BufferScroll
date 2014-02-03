@@ -1,3 +1,5 @@
+***[Sublime Text 3+](http://www.sublimetext.com/) Package. Install via an updated version of  [Package Control 2+](https://sublime.wbond.net/installation). Just **DON'T** install manually.
+
 # Description
 
 Buffer Scroll is a simple [Sublime Text](http://www.sublimetext.com/ ) plug-in which remembers and restores the scroll, cursor positions, also the selections, marks, bookmarks, foldings, selected syntax and optionally the colour scheme, when you open a file. Will also remember different data depending the position of the file in the application (example file1 in window1 has scroll line 30, file1 in window2 has scroll in line 40)
@@ -14,12 +16,6 @@ There is also a hidden feature "refold", if you unfolded code, you can select "r
 Requested by  Binocular222 there is now option to select Folded/Unfolded regions.
 
 <img src="http://dl.dropbox.com/u/9303546/SublimeText/BufferScoll/sync-scroll.png" border="0"/>
-
-# Installation
-
-Install this repository via "Package Control" http://wbond.net/sublime_packages/package_control
-
-For different version of ST see the git branches.
 
 # Source-code
 
