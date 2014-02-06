@@ -9,7 +9,7 @@
 		"synch_marks" : false,
 
 		/* this allow to sync the scroll of the clones of a view */
-		"synch_scroll" : false,
+		"synch_scroll" : true,
 
 		/* The line you work with is automatically the vertical center of the screen. */
 		"typewriter_scrolling": false,

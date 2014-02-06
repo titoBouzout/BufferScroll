@@ -52,25 +52,25 @@ def plugin_loaded():
 
 class Pref():
 	def load(self):
-		Pref.remember_color_scheme 	              = s.get('remember_color_scheme', False)
-		Pref.synch_bookmarks 				              = s.get('synch_bookmarks', False)
-		Pref.synch_marks 						              = s.get('synch_marks', False)
-		Pref.synch_folds 						              = s.get('synch_folds', False)
-		Pref.synch_scroll 					              = s.get('synch_scroll', False)
-		Pref.typewriter_scrolling									= s.get('typewriter_scrolling', False)
-		Pref.use_animations												= s.get('use_animations', False)
-		Pref.i_use_cloned_views										= s.get('i_use_cloned_views', False)
+		Pref.remember_color_scheme            = s.get('remember_color_scheme', False)
+		Pref.synch_bookmarks                  = s.get('synch_bookmarks', False)
+		Pref.synch_marks                      = s.get('synch_marks', False)
+		Pref.synch_folds                      = s.get('synch_folds', False)
+		Pref.synch_scroll                     = s.get('synch_scroll', False)
+		Pref.typewriter_scrolling             = s.get('typewriter_scrolling', False)
+		Pref.use_animations                   = s.get('use_animations', False)
+		Pref.i_use_cloned_views               = s.get('i_use_cloned_views', False)
 
-		Pref.current_view_id				              = -1
-		Pref.writing_to_disk				              = False
+		Pref.current_view_id                  = -1
+		Pref.writing_to_disk                  = False
 
-		Pref.synch_data_running										= False
-		Pref.synch_scroll_running 								= False
-		Pref.synch_scroll_last_view_id						= 0
-		Pref.synch_scroll_last_view_position			= 0
-		Pref.synch_scroll_current_view_object 		= None
-		version                                   = 7
-		version_current                           = s.get('version')
+		Pref.synch_data_running               = False
+		Pref.synch_scroll_running             = False
+		Pref.synch_scroll_last_view_id        = 0
+		Pref.synch_scroll_last_view_position  = 0
+		Pref.synch_scroll_current_view_object = None
+		version                               = 7
+		version_current                       = s.get('version')
 		if version_current != version:
 			s.set('version', version)
 			sublime.save_settings('BufferScroll.sublime-settings')
