@@ -4,11 +4,17 @@ from os import makedirs
 from hashlib import sha1
 from gzip import GzipFile
 import _thread as thread
-from pickle import load, dump
+from cPickle import load, dump
 import time
 from os.path import basename
 
 # import inspect
+debug = {}
+database = {}
+Pref = {}
+BufferScrollAPI = {}
+db = {}
+s = {}
 
 def plugin_loaded():
 	global debug, database, Pref, BufferScrollAPI, db, s
