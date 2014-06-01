@@ -121,7 +121,6 @@ class BufferScrollSaveThread(threading.Thread):
 		gz = GzipFile(database+'.tmp', 'wb')
 		dump(db, gz, -1)
 		gz.close()
-		Pref.writing_to_disk = False
 		try:
 			remove(database)
 		except:
@@ -129,6 +128,7 @@ class BufferScrollSaveThread(threading.Thread):
 		rename(database+'.tmp', database)
 		if debug:
 			print(time.time())
+		Pref.writing_to_disk = False
 
 class BufferScroll(sublime_plugin.EventListener):
 
