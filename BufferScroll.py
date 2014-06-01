@@ -122,8 +122,10 @@ class BufferScrollSaveThread(threading.Thread):
 		dump(db, gz, -1)
 		gz.close()
 		Pref.writing_to_disk = False
-
-		remove(database)
+		try:
+			remove(database)
+		except:
+			pass
 		rename(database+'.tmp', database)
 		if debug:
 			print(time.time())
