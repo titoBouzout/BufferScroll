@@ -21,6 +21,8 @@ Pref = {}
 BufferScrollAPI = {}
 db = {}
 s = {}
+already_restored = {}
+scroll_already_restored = {}
 
 def plugin_loaded():
 
@@ -75,7 +77,6 @@ class Pref():
 		Pref.i_use_cloned_views               = s.get('i_use_cloned_views', False)
 
 		Pref.current_view_id                  = -1
-		Pref.writing_to_disk                  = False
 
 		Pref.synch_data_running               = False
 		Pref.synch_scroll_running             = False
@@ -108,34 +109,48 @@ class Pref():
 		else:
 			return getattr(Pref, type)
 
+if not 'writing_to_disk' in globals():
+	global writing_to_disk
+	writing_to_disk = False
+
 class BufferScrollSaveThread(threading.Thread):
 
 	def __init__(self):
 		threading.Thread.__init__(self)
 
 	def run(self):
-		if debug:
-			print('starts..')
-			print ('writing to disk')
-			print(time.time())
-		gz = GzipFile(database+'.tmp', 'wb')
-		dump(db, gz, -1)
-		gz.close()
-		try:
-			remove(database)
-		except:
-			pass
-		rename(database+'.tmp', database)
-		if debug:
-			print(time.time())
-		Pref.writing_to_disk = False
+		global writing_to_disk
+		if not writing_to_disk:
+			writing_to_disk = True
+			if debug:
+				print('starts..')
+				print ('writing to disk')
+				print(time.time())
+			gz = GzipFile(database+'.tmp', 'wb')
+			dump(db, gz, -1)
+			gz.close()
+			try:
+				remove(database)
+			except:
+				pass
+			try:
+				rename(database+'.tmp', database)
+			except:
+				pass
+			if debug:
+				print(time.time())
+			writing_to_disk = False
 
 class BufferScroll(sublime_plugin.EventListener):
 
 	def init_(self):
 		self.on_load(sublime.active_window().active_view())
-		for window in  sublime.windows():
+		for window in sublime.windows():
+			for view in reversed(window.views()):
+				self.on_load(view)
+		for window in sublime.windows():
 			self.on_load(window.active_view())
+			self.restore_scroll(window.active_view())
 
 	# restore on load for new opened tabs or previews.
 	def on_load(self, view):
@@ -143,7 +158,7 @@ class BufferScroll(sublime_plugin.EventListener):
 
 	# restore on load for cloned views
 	def on_clone(self, view):
-		self.restore(view, 'on_clone')
+		self.restore(sublime.active_window().active_view(), 'on_clone')
 
 	# save data on focus lost
 	def on_deactivated(self, view):
@@ -157,9 +172,18 @@ class BufferScroll(sublime_plugin.EventListener):
 
 	# track the current_view. See next event listener
 	def on_activated(self, view):
+		global already_restored
+		window = view.window();
+		if not window:
+			window = sublime.active_window()
+		view = window.active_view()
 		if not view.settings().get('is_widget'):
 			Pref.current_view_id = view.id()
 			Pref.synch_scroll_current_view_object = view
+		if view.id() not in already_restored:
+			self.on_load(view)
+		if view.id() not in scroll_already_restored:
+			self.restore_scroll(view)
 
 	# save data on close
 	def on_pre_close(self, view):
@@ -214,11 +238,11 @@ class BufferScroll(sublime_plugin.EventListener):
 			if 'l' not in db[id]:
 				db[id]['l'] = {}
 			# save the scroll with "index" as the id ( for cloned views )
-			db[id]['l'][index] = view.viewport_position()
+			db[id]['l'][index] = list(view.viewport_position())
 			# also save as default if no exists
-			db[id]['l']['0'] = view.viewport_position()
+			db[id]['l']['0'] = list(view.viewport_position())
 			if debug:
-				print('viewport_position: '+str(view.viewport_position()))
+				print('viewport_position: '+str(db[id]['l']['0']))
 
 			# selections
 			db[id]['s'] = [[item.a, item.b] for item in view.sel()]
@@ -257,12 +281,7 @@ class BufferScroll(sublime_plugin.EventListener):
 
 			# write to disk only if something changed
 			if old_db != db[id] or where == 'on_deactivated':
-				if not Pref.writing_to_disk:
-					Pref.writing_to_disk = True
-					sublime.set_timeout(lambda:self.write(), 0);
-
-	def write(self):
-		BufferScrollSaveThread().start()
+				BufferScrollSaveThread().start()
 
 	def view_id(self, view):
 		if not view.settings().has('buffer_scroll_name'):
@@ -276,14 +295,49 @@ class BufferScroll(sublime_plugin.EventListener):
 		index = window.get_view_index(view)
 		return str(window.id())+str(index)
 
+	def restore_scroll(self, view, where = 'unknow'):
+		global scroll_already_restored
+		if view is None or not view.file_name() or view.settings().get('is_widget') or view.id() in scroll_already_restored or view not in sublime.active_window().views():
+			return
+
+		if view.is_loading():
+			sublime.set_timeout(lambda: self.restore_scroll(view, where), 100)
+		else:
+			scroll_already_restored[view.id()] = True
+			id, index = self.view_id(view)
+
+			if debug:
+				print ('-----------------------------------')
+				print ('RESTORING from: '+where)
+				print ('file: '+view.file_name())
+				print ('id: '+id)
+				print ('position: '+index)
+
+			if id in db:
+
+				# scroll
+				if Pref.get('i_use_cloned_views', view) and index in db[id]['l']:
+					position = list(db[id]['l'][index])
+					view.set_viewport_position(position, Pref.get('use_animations', view))
+				else:
+					position = list(db[id]['l']['0'])
+					view.set_viewport_position(position, Pref.get('use_animations', view))
+
+				sublime.set_timeout(lambda: self.stupid_scroll(view, position), 50)
+				if debug:
+					print('scroll set: '+str(position));
+					print('supposed current scroll: '+str(view.viewport_position())); # THIS LIES
+
 	def restore(self, view, where = 'unknow'):
-		if view is None or not view.file_name() or view.settings().get('is_widget'):
+		global already_restored
+
+		if view is None or not view.file_name() or view.settings().get('is_widget') or view.id() in already_restored:
 			return
 
 		if view.is_loading():
 			sublime.set_timeout(lambda: self.restore(view, where), 100)
 		else:
-
+			already_restored[view.id()] = True
 			id, index = self.view_id(view)
 
 			if debug:
@@ -347,19 +401,22 @@ class BufferScroll(sublime_plugin.EventListener):
 
 				# scroll
 				if Pref.get('i_use_cloned_views', view) and index in db[id]['l']:
-					position = tuple(db[id]['l'][index])
+					position = list(db[id]['l'][index])
 					view.set_viewport_position(position, Pref.get('use_animations', view))
 				else:
-					position = tuple(db[id]['l']['0'])
+					position = list(db[id]['l']['0'])
 					view.set_viewport_position(position, Pref.get('use_animations', view))
-				sublime.set_timeout(lambda: self.stupid_scroll(view, position), 0)
+
 				if debug:
 					print('scroll set: '+str(position));
 					print('supposed current scroll: '+str(view.viewport_position())); # THIS LIES
 
 	def stupid_scroll(self, view, position):
-		if not view.visible_region().contains(view.sel()[0]):
-			view.set_viewport_position(position, Pref.get('use_animations', view))
+		view.set_viewport_position(position, Pref.get('use_animations', view))
+
+	def print_stupid_scroll(self, view):
+		print('current scroll for: '+str(view.file_name()));
+		print('current scroll: '+str(view.viewport_position()));
 
 	def synch_data(self, view = None, where = 'unknow'):
 		if view is None:
@@ -393,7 +450,7 @@ class BufferScroll(sublime_plugin.EventListener):
 
 			id, index = self.view_id(view)
 
-			#print 'sync bookmarks, marks, folds'
+			#print ('sync bookmarks, marks, folds')
 
 			if Pref.get('synch_bookmarks', view):
 				bookmarks = []
