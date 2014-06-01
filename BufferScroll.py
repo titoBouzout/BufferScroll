@@ -1,9 +1,10 @@
 import sublime, sublime_plugin
 from os.path import lexists, normpath, dirname
-from os import makedirs
+from os import makedirs, remove, rename
 from hashlib import sha1
 from gzip import GzipFile
 import _thread as thread
+import threading
 
 try:
 	from cPickle import load, dump
@@ -106,6 +107,26 @@ class Pref():
 			self.get(type, view);
 		else:
 			return getattr(Pref, type)
+
+class BufferScrollSaveThread(threading.Thread):
+
+	def __init__(self):
+		threading.Thread.__init__(self)
+
+	def run(self):
+		if debug:
+			print('starts..')
+			print ('writing to disk')
+			print(time.time())
+		gz = GzipFile(database+'.tmp', 'wb')
+		dump(db, gz, -1)
+		gz.close()
+		Pref.writing_to_disk = False
+
+		remove(database)
+		rename(database+'.tmp', database)
+		if debug:
+			print(time.time())
 
 class BufferScroll(sublime_plugin.EventListener):
 
@@ -239,12 +260,7 @@ class BufferScroll(sublime_plugin.EventListener):
 					sublime.set_timeout(lambda:self.write(), 0);
 
 	def write(self):
-		if debug:
-			print ('writing to disk')
-		gz = GzipFile(database, 'wb')
-		dump(db, gz, -1)
-		gz.close()
-		Pref.writing_to_disk = False
+		BufferScrollSaveThread().start()
 
 	def view_id(self, view):
 		if not view.settings().has('buffer_scroll_name'):

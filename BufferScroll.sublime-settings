@@ -1,35 +1,34 @@
+{
+	/* this is used for allowing to use more than 1 colour scheme at the same time in different views */
+	"remember_color_scheme": false,
 
-	{
-		/* this is used for allowing to use more than 1 colour scheme at the same time in different views */
-		"remember_color_scheme" : false,
+	/* allows to keep in sync bookmarks, marks or folds across cloned views */
+	"synch_bookmarks": false,
+	"synch_folds": false,
+	"synch_marks": false,
 
-		/* allows to keep in sync bookmarks, marks or folds across cloned views */
-		"synch_bookmarks" : false,
-		"synch_folds" : false,
-		"synch_marks" : false,
+	/* this allow to sync the scroll of the clones of a view */
+	"synch_scroll": true,
 
-		/* this allow to sync the scroll of the clones of a view */
-		"synch_scroll" : true,
+	/* The line you work with is automatically the vertical center of the screen. */
+	"typewriter_scrolling": false,
 
-		/* The line you work with is automatically the vertical center of the screen. */
-		"typewriter_scrolling": false,
+	/* ST has animations for when scrolling, these are disabled by default */
+	"use_animations": false,
 
-		/* ST has animations for when scrolling, these are disabled by default */
-		"use_animations": false,
-
-		/* the same file, can have many different data saved depending the position of the file in the application (example file.txt in window1 has scroll line 30, file.txt in window2 has scroll in line 40) -
+	/* the same file, can have many different data saved depending the position of the file in the application (example file.txt in window1 has scroll line 30, file.txt in window2 has scroll in line 40) -
 		If you don't use cloned views, set this to false, to always restore the last scroll position */
-		"i_use_cloned_views": false,
+	"i_use_cloned_views": false,
 
-		/* any syntax specific settings you want.. o_O (Note: lowercase syntax names)*/
+	/* any syntax specific settings you want.. o_O (Note: lowercase syntax names)*/
 
-			"plain text":	{
-				"synch_scroll" : false
-			},
+	"plain text": {
+		"synch_scroll": false
+	},
 
-			"python":	{
-				"use_animations": false
-			}
-			/* etc */
-
+	"python": {
+		"use_animations": false
 	}
+	/* etc */
+
+}
