@@ -23,6 +23,7 @@ db = {}
 s = {}
 already_restored = {}
 scroll_already_restored = {}
+last_focused_view_name = ''
 
 def plugin_loaded():
 
@@ -172,7 +173,7 @@ class BufferScroll(sublime_plugin.EventListener):
 
 	# track the current_view. See next event listener
 	def on_activated(self, view):
-		global already_restored
+		global already_restored, last_focused_view_name
 		window = view.window();
 		if not window:
 			window = sublime.active_window()
@@ -184,6 +185,7 @@ class BufferScroll(sublime_plugin.EventListener):
 			self.on_load(view)
 		if view.id() not in scroll_already_restored:
 			self.restore_scroll(view)
+		last_focused_view_name = view.name()
 
 	# save data on close
 	def on_pre_close(self, view):
@@ -296,7 +298,7 @@ class BufferScroll(sublime_plugin.EventListener):
 		return str(window.id())+str(index)
 
 	def restore_scroll(self, view, where = 'unknow'):
-		global scroll_already_restored
+		global scroll_already_restored, last_focused_view_name
 		if view is None or not view.file_name() or view.settings().get('is_widget') or view.id() in scroll_already_restored or view not in sublime.active_window().views():
 			return
 
@@ -304,29 +306,32 @@ class BufferScroll(sublime_plugin.EventListener):
 			sublime.set_timeout(lambda: self.restore_scroll(view, where), 100)
 		else:
 			scroll_already_restored[view.id()] = True
-			id, index = self.view_id(view)
+			if last_focused_view_name == 'Find Results':
+				pass
+			else:
+				id, index = self.view_id(view)
 
-			if debug:
-				print ('-----------------------------------')
-				print ('RESTORING from: '+where)
-				print ('file: '+view.file_name())
-				print ('id: '+id)
-				print ('position: '+index)
-
-			if id in db:
-
-				# scroll
-				if Pref.get('i_use_cloned_views', view) and index in db[id]['l']:
-					position = list(db[id]['l'][index])
-					view.set_viewport_position(position, Pref.get('use_animations', view))
-				else:
-					position = list(db[id]['l']['0'])
-					view.set_viewport_position(position, Pref.get('use_animations', view))
-
-				sublime.set_timeout(lambda: self.stupid_scroll(view, position), 50)
 				if debug:
-					print('scroll set: '+str(position));
-					print('supposed current scroll: '+str(view.viewport_position())); # THIS LIES
+					print ('-----------------------------------')
+					print ('RESTORING from: '+where)
+					print ('file: '+view.file_name())
+					print ('id: '+id)
+					print ('position: '+index)
+
+				if id in db:
+
+					# scroll
+					if Pref.get('i_use_cloned_views', view) and index in db[id]['l']:
+						position = list(db[id]['l'][index])
+						view.set_viewport_position(position, Pref.get('use_animations', view))
+					else:
+						position = list(db[id]['l']['0'])
+						view.set_viewport_position(position, Pref.get('use_animations', view))
+
+					sublime.set_timeout(lambda: self.stupid_scroll(view, position), 50)
+					if debug:
+						print('scroll set: '+str(position));
+						print('supposed current scroll: '+str(view.viewport_position())); # THIS LIES
 
 	def restore(self, view, where = 'unknow'):
 		global already_restored
