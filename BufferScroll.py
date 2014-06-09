@@ -84,6 +84,7 @@ class Pref():
 		Pref.synch_scroll_last_view_id        = 0
 		Pref.synch_scroll_last_view_position  = 0
 		Pref.synch_scroll_current_view_object = None
+		Pref.writing_to_disk                  = False
 		version                               = 7
 		version_current                       = s.get('version')
 		if version_current != version:
@@ -110,19 +111,14 @@ class Pref():
 		else:
 			return getattr(Pref, type)
 
-if not 'writing_to_disk' in globals():
-	global writing_to_disk
-	writing_to_disk = False
-
 class BufferScrollSaveThread(threading.Thread):
 
 	def __init__(self):
 		threading.Thread.__init__(self)
 
 	def run(self):
-		global writing_to_disk
-		if not writing_to_disk:
-			writing_to_disk = True
+		if not Pref.writing_to_disk:
+			Pref.writing_to_disk = True
 			if debug:
 				print('starts..')
 				print ('writing to disk')
@@ -140,7 +136,7 @@ class BufferScrollSaveThread(threading.Thread):
 				pass
 			if debug:
 				print(time.time())
-			writing_to_disk = False
+			Pref.writing_to_disk = False
 
 class BufferScroll(sublime_plugin.EventListener):
 
@@ -322,11 +318,11 @@ class BufferScroll(sublime_plugin.EventListener):
 
 					# scroll
 					if Pref.get('i_use_cloned_views', view) and index in db[id]['l']:
-						position = list(db[id]['l'][index])
-						view.set_viewport_position(position, Pref.get('use_animations', view))
+						position = tuple(db[id]['l'][index])
+						view.set_viewport_position(position)
 					else:
-						position = list(db[id]['l']['0'])
-						view.set_viewport_position(position, Pref.get('use_animations', view))
+						position = tuple(db[id]['l']['0'])
+						view.set_viewport_position(position)
 
 					sublime.set_timeout(lambda: self.stupid_scroll(view, position), 50)
 					if debug:
@@ -406,18 +402,18 @@ class BufferScroll(sublime_plugin.EventListener):
 
 				# scroll
 				if Pref.get('i_use_cloned_views', view) and index in db[id]['l']:
-					position = list(db[id]['l'][index])
-					view.set_viewport_position(position, Pref.get('use_animations', view))
+					position = tuple(db[id]['l'][index])
+					view.set_viewport_position(position)
 				else:
-					position = list(db[id]['l']['0'])
-					view.set_viewport_position(position, Pref.get('use_animations', view))
+					position = tuple(db[id]['l']['0'])
+					view.set_viewport_position(position)
 
 				if debug:
 					print('scroll set: '+str(position));
 					print('supposed current scroll: '+str(view.viewport_position())); # THIS LIES
 
 	def stupid_scroll(self, view, position):
-		view.set_viewport_position(position, Pref.get('use_animations', view))
+		view.set_viewport_position(position)
 
 	def print_stupid_scroll(self, view):
 		print('current scroll for: '+str(view.file_name()));
