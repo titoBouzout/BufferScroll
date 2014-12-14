@@ -19,7 +19,7 @@ Requested by  Binocular222 there is now option to select Folded/Unfolded regions
 
 # Source-code
 
-https://github.com/SublimeText/BufferScroll
+https://github.com/titoBouzout/BufferScroll
 
 # Bugs
 
