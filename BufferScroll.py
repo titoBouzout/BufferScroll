@@ -607,6 +607,10 @@ class BufferScrollReFold(sublime_plugin.WindowCommand):
                         rs.append(sublime.Region(int(r[0]), int(r[1])))
                     if len(rs):
                         view.fold(rs)
+                    # update the minimap
+                    position = view.viewport_position()
+                    view.set_viewport_position((position[0]-1,position[1]-1))
+                    view.set_viewport_position(position)
 
     def is_enabled(self):
         view = sublime.active_window().active_view()
