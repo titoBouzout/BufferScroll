@@ -327,6 +327,36 @@ class BufferScroll(sublime_plugin.EventListener):
                         position = tuple(db[id]['l']['0'])
                         view.set_viewport_position(position)
 
+                    # ugly hack
+                    # ugly hack
+                    # ugly hack
+                    # ugly hack
+                    # ugly hack
+                    # ugly hack
+                    # ugly hack
+                    # ugly hack
+                    # ugly hack
+                    # ugly hack
+                    # ugly hack
+                    # ugly hack
+                    # ugly hack
+                    # ugly hack
+                    # ugly hack
+                    # ugly hack
+                    # ugly hack
+                    # ugly hack
+                    # ugly hack
+                    # ugly hack
+                    # ugly hack
+                    # ugly hack
+                    # ugly hack
+                    # ugly hack
+                    # ugly hack
+                    # ugly hack
+                    # ugly hack
+                    # ugly hack
+                    # ugly hack
+
                     sublime.set_timeout(lambda: self.stupid_scroll(view, position), 50)
                     if debug:
                         print('scroll set: '+str(position));
