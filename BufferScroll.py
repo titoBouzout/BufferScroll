@@ -160,6 +160,9 @@ class BufferScroll(sublime_plugin.EventListener):
 
     # save data on focus lost
     def on_deactivated(self, view):
+        global last_focused_view_name
+        last_focused_view_name = view.name()+''+str(view.file_name())
+
         window = view.window();
         if not window:
             window = sublime.active_window()
@@ -170,7 +173,7 @@ class BufferScroll(sublime_plugin.EventListener):
 
     # track the current_view. See next event listener
     def on_activated(self, view):
-        global already_restored, last_focused_view_name
+        global already_restored
         window = view.window();
         if not window:
             window = sublime.active_window()
@@ -182,7 +185,6 @@ class BufferScroll(sublime_plugin.EventListener):
             self.on_load(view)
         if view.id() not in scroll_already_restored:
             self.restore_scroll(view)
-        last_focused_view_name = view.name()
 
     # save data on close
     def on_pre_close(self, view):
@@ -303,7 +305,7 @@ class BufferScroll(sublime_plugin.EventListener):
             sublime.set_timeout(lambda: self.restore_scroll(view, where), 100)
         else:
             scroll_already_restored[view.id()] = True
-            if last_focused_view_name == 'Find Results':
+            if last_focused_view_name == 'Find Results' or last_focused_view_name == 'None':
                 pass
             else:
                 id, index = self.view_id(view)
