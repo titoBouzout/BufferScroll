@@ -428,7 +428,7 @@ class BufferScroll(sublime_plugin.EventListener):
                         print('color scheme: '+str(db[id]['c']));
 
                 # syntax
-                if view.settings().get('syntax') != db[id]['x'] and lexists(sublime.packages_path()+'/../'+db[id]['x']):
+                if view.settings().get('syntax') != db[id]['x'] and lexists(dirname(sublime.packages_path())+'/'+db[id]['x']):
                     view.settings().set('syntax', db[id]['x'])
                     if debug:
                         print('syntax: '+str(db[id]['x']));
