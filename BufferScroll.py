@@ -322,10 +322,10 @@ class BufferScroll(sublime_plugin.EventListener):
                     # scroll
                     if Pref.get('i_use_cloned_views', view) and index in db[id]['l']:
                         position = tuple(db[id]['l'][index])
-                        view.set_viewport_position(position)
+                        view.set_viewport_position(position, Pref.use_animations)
                     else:
                         position = tuple(db[id]['l']['0'])
-                        view.set_viewport_position(position)
+                        view.set_viewport_position(position, Pref.use_animations)
 
                     # ugly hack
                     # ugly hack
@@ -436,17 +436,17 @@ class BufferScroll(sublime_plugin.EventListener):
                 # scroll
                 if Pref.get('i_use_cloned_views', view) and index in db[id]['l']:
                     position = tuple(db[id]['l'][index])
-                    view.set_viewport_position(position)
+                    view.set_viewport_position(position, Pref.use_animations)
                 else:
                     position = tuple(db[id]['l']['0'])
-                    view.set_viewport_position(position)
+                    view.set_viewport_position(position, Pref.use_animations)
 
                 if debug:
                     print('scroll set: '+str(position));
                     print('supposed current scroll: '+str(view.viewport_position())); # THIS LIES
 
     def stupid_scroll(self, view, position):
-        view.set_viewport_position(position)
+        view.set_viewport_position(position, Pref.use_animations)
 
     def print_stupid_scroll(self, view):
         print('current scroll for: '+str(view.file_name()));
@@ -603,7 +603,7 @@ class BufferScroll(sublime_plugin.EventListener):
             left, old_top = current_view.viewport_position()
             top = ((ppt-cph)+line)
             if abs(old_top-top) >= line:
-                current_view.set_viewport_position((left, top))
+                current_view.set_viewport_position((left, top), Pref.use_animations))
             previous_view = current_view
             b -= 1
 
@@ -616,7 +616,7 @@ class BufferScroll(sublime_plugin.EventListener):
             left, old_top = current_view.viewport_position()
             top = top[1]-3 # 3 is the approximated height of the shadow of the tabbar. Removing the shadow Makes the text more readable
             if abs(old_top-top) >= line:
-                current_view.set_viewport_position((left, top))
+                current_view.set_viewport_position((left, top), Pref.use_animations))
             previous_view = current_view
             i += 1
 
@@ -639,10 +639,12 @@ class BufferScrollReFold(sublime_plugin.WindowCommand):
                         rs.append(sublime.Region(int(r[0]), int(r[1])))
                     if len(rs):
                         view.fold(rs)
+
                     # update the minimap
-                    position = view.viewport_position()
-                    view.set_viewport_position((position[0]-1,position[1]-1))
-                    view.set_viewport_position(position)
+                    # view.show(view.sel())
+                    # position = view.viewport_position()
+                    # view.set_viewport_position((position[0]-1,position[1]-1), Pref.use_animations))
+                    # view.set_viewport_position(position, Pref.use_animations))
 
     def is_enabled(self):
         view = sublime.active_window().active_view()
@@ -657,7 +659,6 @@ class BufferScrollFoldSelectFolded(sublime_plugin.WindowCommand):
     def run(self):
         view = sublime.active_window().active_view()
         if view is not None:
-            # folding
             folds = [[item.a, item.b] for item in view.folded_regions()]
             if folds:
                 view.sel().clear()
@@ -672,7 +673,6 @@ class BufferScrollFoldSelectUnfolded(sublime_plugin.WindowCommand):
             view.sel().clear()
             prev = 0
             for fold in folds:
-                # sublime.message_dialog(self.view.substr(fold[0]))
                 view.sel().add(sublime.Region(prev, int(fold[0])))
                 if view.substr(fold[1]) == "\n":
                     prev = int(fold[1]) + 1
@@ -694,3 +694,4 @@ def synch_data_loop():
         if not Pref.synch_data_running:
             sublime.set_timeout(lambda:synch_data(None, 'thread'), 0)
         time.sleep(0.5)
+
