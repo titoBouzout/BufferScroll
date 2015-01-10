@@ -20,6 +20,8 @@
 		If you don't use cloned views, set this to false, to always restore the last scroll position */
 	"i_use_cloned_views": false,
 
+	"max_database_records": 100,
+
 	/* any syntax specific settings you want.. o_O (Note: lowercase syntax names)*/
 
 	"plain text": {
