@@ -142,6 +142,10 @@ class BufferScrollSaveThread(threading.Thread):
 class BufferScroll(sublime_plugin.EventListener):
 
     def init_(self):
+        # ST BUG https://github.com/SublimeTextIssues/Core/issues/5
+        # the application is not sending on_load when opening/restoring a window,
+        # then there is this hack which will simulate or synthesize an on_load when you open the application
+        # since this is just a hack, there is a terrible noticeable delay, which just sucks
         self.on_load(sublime.active_window().active_view())
         for window in sublime.windows():
             for view in reversed(window.views()):
@@ -154,14 +158,25 @@ class BufferScroll(sublime_plugin.EventListener):
     def on_load(self, view):
         self.restore(view, 'on_load')
 
+    # ST BUG tps://github.com/SublimeTextIssues/Core/issues/9
+    def on_reload(self, view):
+        self.restore(view, 'on_reload')
+
     # restore on load for cloned views
     def on_clone(self, view):
+        # ST BUG https://github.com/SublimeTextIssues/Core/issues/8
         self.restore(sublime.active_window().active_view(), 'on_clone')
 
     # save data on focus lost
     def on_deactivated(self, view):
         global last_focused_view_name
         last_focused_view_name = view.name()+''+str(view.file_name())
+
+        # ST BUG https://github.com/SublimeTextIssues/Core/issues/10
+        # unable to flush when the application is closed
+        # ST BUG https://github.com/SublimeTextIssues/Core/issues/181
+        # the application is not sending "on_close" event when closings
+        # or switching the projects, then we need to save the data on focus lost
 
         window = view.window();
         if not window:
@@ -182,11 +197,13 @@ class BufferScroll(sublime_plugin.EventListener):
             Pref.current_view_id = view.id()
             Pref.synch_scroll_current_view_object = view
         if view.id() not in already_restored:
-            self.on_load(view)
+            self.restore(view, 'on_activated')
         if view.id() not in scroll_already_restored:
             self.restore_scroll(view)
 
-    # save data on close
+    # save the data when background tabs are closed
+    # these that don't receive "on_deactivated"
+    # on_pre_close does not have a "get_view_index" ?
     def on_pre_close(self, view):
         self.save(view, 'on_pre_close')
 
@@ -197,7 +214,7 @@ class BufferScroll(sublime_plugin.EventListener):
     # typewriter scrolling
     def on_modified(self, view):
         if Pref.get('typewriter_scrolling', view) and len(view.sel()) == 1 and not view.settings().get('is_widget') and not view.is_scratch():
-            # TODO STBUG if the view is in a column, for some reason the parameter view, is not correct. This fix it:s
+            # TODO STBUG if the view is in a column, for some reason the parameter view, is not correct. This fix it
             window = view.window();
             if not window:
                 window = sublime.active_window()
@@ -603,7 +620,7 @@ class BufferScroll(sublime_plugin.EventListener):
             left, old_top = current_view.viewport_position()
             top = ((ppt-cph)+line)
             if abs(old_top-top) >= line:
-                current_view.set_viewport_position((left, top), Pref.use_animations))
+                current_view.set_viewport_position((left, top), Pref.use_animations)
             previous_view = current_view
             b -= 1
 
@@ -616,7 +633,7 @@ class BufferScroll(sublime_plugin.EventListener):
             left, old_top = current_view.viewport_position()
             top = top[1]-3 # 3 is the approximated height of the shadow of the tabbar. Removing the shadow Makes the text more readable
             if abs(old_top-top) >= line:
-                current_view.set_viewport_position((left, top), Pref.use_animations))
+                current_view.set_viewport_position((left, top), Pref.use_animations)
             previous_view = current_view
             i += 1
 
@@ -695,3 +712,35 @@ def synch_data_loop():
             sublime.set_timeout(lambda:synch_data(None, 'thread'), 0)
         time.sleep(0.5)
 
+
+
+
+class BufferScrollListener(sublime_plugin.EventListener):
+
+    def on_text_command(self, view, command_name, args):
+        global last_focused_view_name
+        # print('on_text_command')
+        # print(command_name)
+        # print(args)
+        if command_name == 'goto_definition':
+            last_focused_view_name = 'None'
+        pass
+    def on_window_command(self, window, command_name, args):
+        # print('on_window_command')
+        # print(command_name)
+        # print(args)
+        pass
+    def on_post_text_command(self, view, command_name, args):
+        # print('on_post_text_command')
+        # print(command_name)
+        # print(args)
+        pass
+    def on_post_window_command(self, window, command_name, args):
+        # print('on_post_window_command')
+        # print(command_name)
+        # print(args)
+        # if command_name == 'open_dir':
+        #   return ('noop',[])
+        pass
+
+# check somme != '' and some != none
