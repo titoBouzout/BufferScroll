@@ -80,7 +80,7 @@ class Pref():
         Pref.typewriter_scrolling             = s.get('typewriter_scrolling', False)
         Pref.use_animations                   = s.get('use_animations', False)
         Pref.i_use_cloned_views               = s.get('i_use_cloned_views', False)
-        Pref.max_database_records             = s.get('max_database_records', False)
+        Pref.max_database_records             = s.get('max_database_records', 500)
 
         Pref.current_view_id                  = -1
 
@@ -128,6 +128,10 @@ class BufferScrollSaveThread(threading.Thread):
                 print('starts..')
                 print ('writing to disk')
                 print(time.time())
+
+            while len(db) > Pref.max_database_records:
+                db.popitem(last = False)
+
             gz = GzipFile(database+'.tmp', 'wb')
             dump(db, gz, -1)
             gz.close()
@@ -304,8 +308,6 @@ class BufferScroll(sublime_plugin.EventListener):
             # write to disk only if something changed
             if old_db != db[id] or where == 'on_deactivated':
                 db.move_to_end(id)
-                while len(db) > Pref.get('max_database_records', view):
-                    db.popitem(last = False)
                 BufferScrollSaveThread().start()
 
     def view_id(self, view):
