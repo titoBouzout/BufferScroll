@@ -3,6 +3,7 @@ from os.path import lexists, normpath, dirname
 from os import makedirs, remove, rename
 from hashlib import sha1
 from gzip import GzipFile
+from collections import OrderedDict
 import _thread as thread
 import threading
 
@@ -19,7 +20,7 @@ debug = {}
 database = {}
 Pref = {}
 BufferScrollAPI = {}
-db = {}
+db = OrderedDict()
 s = {}
 already_restored = {}
 scroll_already_restored = {}
@@ -31,7 +32,7 @@ def plugin_loaded():
     debug = False
 
     # open
-    db = {}
+    db = OrderedDict()
     database = dirname(sublime.packages_path())+'/Settings/BufferScroll.bin.gz'
     try:
         makedirs(dirname(database))
@@ -41,8 +42,10 @@ def plugin_loaded():
         gz = GzipFile(database, 'rb')
         db = load(gz);
         gz.close()
+        if not isinstance(db, OrderedDict):
+            db = OrderedDict(db)
     except:
-        db = {}
+        db = OrderedDict()
 
     # settings
     s = sublime.load_settings('BufferScroll.sublime-settings')
@@ -77,6 +80,7 @@ class Pref():
         Pref.typewriter_scrolling             = s.get('typewriter_scrolling', False)
         Pref.use_animations                   = s.get('use_animations', False)
         Pref.i_use_cloned_views               = s.get('i_use_cloned_views', False)
+        Pref.max_database_records             = s.get('max_database_records', False)
 
         Pref.current_view_id                  = -1
 
@@ -299,6 +303,9 @@ class BufferScroll(sublime_plugin.EventListener):
 
             # write to disk only if something changed
             if old_db != db[id] or where == 'on_deactivated':
+                db.move_to_end(id)
+                while len(db) > Pref.get('max_database_records', view):
+                    db.popitem(last = False)
                 BufferScrollSaveThread().start()
 
     def view_id(self, view):
