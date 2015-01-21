@@ -25,6 +25,7 @@ s = {}
 already_restored = {}
 scroll_already_restored = {}
 last_focused_view_name = ''
+last_focused_goto_definition = False
 
 def plugin_loaded():
 
@@ -178,7 +179,7 @@ class BufferScroll(sublime_plugin.EventListener):
     # save data on focus lost
     def on_deactivated(self, view):
         global last_focused_view_name
-        last_focused_view_name = view.name()+''+str(view.file_name())
+        last_focused_view_name = view.name()+'-'+str(view.file_name())+'-'+str(view.settings().get('is_widget'))
 
         # ST BUG https://github.com/SublimeTextIssues/Core/issues/10
         # unable to flush when the application is closed
@@ -323,7 +324,7 @@ class BufferScroll(sublime_plugin.EventListener):
         return str(window.id())+str(index)
 
     def restore_scroll(self, view, where = 'unknow'):
-        global scroll_already_restored, last_focused_view_name
+        global scroll_already_restored, last_focused_view_name, last_focused_goto_definition
         if view is None or not view.file_name() or view.settings().get('is_widget') or view.id() in scroll_already_restored or view not in sublime.active_window().views():
             return
 
@@ -331,14 +332,15 @@ class BufferScroll(sublime_plugin.EventListener):
             sublime.set_timeout(lambda: self.restore_scroll(view, where), 100)
         else:
             scroll_already_restored[view.id()] = True
-            if last_focused_view_name == 'Find Results' or last_focused_view_name == 'None':
-                pass
+            if last_focused_view_name == '-None-None' or last_focused_view_name == 'None' or last_focused_view_name == 'Find Results-None-None' or last_focused_goto_definition or last_focused_view_name.endswith('-True'):
+                last_focused_goto_definition = False
             else:
                 id, index = self.view_id(view)
 
                 if debug:
                     print ('-----------------------------------')
                     print ('RESTORING from: '+where)
+                    print ('last_focused_view_name: '+last_focused_view_name)
                     print ('file: '+view.file_name())
                     print ('id: '+id)
                     print ('position: '+index)
@@ -403,6 +405,7 @@ class BufferScroll(sublime_plugin.EventListener):
             if debug:
                 print ('-----------------------------------')
                 print ('RESTORING from: '+where)
+                print ('last_focused_view_name: '+last_focused_view_name)
                 print ('file: '+view.file_name())
                 print ('id: '+id)
                 print ('position: '+index)
@@ -667,10 +670,9 @@ class BufferScrollReFold(sublime_plugin.WindowCommand):
                         view.fold(rs)
 
                     # update the minimap
-                    # view.show(view.sel())
-                    # position = view.viewport_position()
-                    # view.set_viewport_position((position[0]-1,position[1]-1), Pref.use_animations))
-                    # view.set_viewport_position(position, Pref.use_animations))
+                    position = view.viewport_position()
+                    view.set_viewport_position((position[0]-1,position[1]-1), Pref.use_animations)
+                    view.set_viewport_position(position, Pref.use_animations)
 
     def is_enabled(self):
         view = sublime.active_window().active_view()
@@ -727,18 +729,18 @@ def synch_data_loop():
 class BufferScrollListener(sublime_plugin.EventListener):
 
     def on_text_command(self, view, command_name, args):
-        global last_focused_view_name
         # print('on_text_command')
+        # print(command_name)
+        # print(args)
+        pass
+    def on_window_command(self, window, command_name, args):
+        global last_focused_view_name, last_focused_goto_definition
+        # print('on_window_command')
         # print(command_name)
         # print(args)
         if command_name == 'goto_definition':
             last_focused_view_name = 'None'
-        pass
-    def on_window_command(self, window, command_name, args):
-        # print('on_window_command')
-        # print(command_name)
-        # print(args)
-        pass
+            last_focused_goto_definition = True
     def on_post_text_command(self, view, command_name, args):
         # print('on_post_text_command')
         # print(command_name)
@@ -751,5 +753,3 @@ class BufferScrollListener(sublime_plugin.EventListener):
         # if command_name == 'open_dir':
         #   return ('noop',[])
         pass
-
-# check somme != '' and some != none
