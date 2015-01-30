@@ -82,6 +82,7 @@ class Pref():
         Pref.use_animations                   = s.get('use_animations', False)
         Pref.i_use_cloned_views               = s.get('i_use_cloned_views', False)
         Pref.max_database_records             = s.get('max_database_records', 500)
+        Pref.restore_scroll                   = s.get('restore_scroll', True)
 
         Pref.current_view_id                  = -1
 
@@ -348,10 +349,10 @@ class BufferScroll(sublime_plugin.EventListener):
                 if id in db:
 
                     # scroll
-                    if Pref.get('i_use_cloned_views', view) and index in db[id]['l']:
+                    if Pref.get('restore_scroll', view) and Pref.get('i_use_cloned_views', view) and index in db[id]['l']:
                         position = tuple(db[id]['l'][index])
                         view.set_viewport_position(position, Pref.use_animations)
-                    else:
+                    elif Pref.get('restore_scroll', view):
                         position = tuple(db[id]['l']['0'])
                         view.set_viewport_position(position, Pref.use_animations)
 
@@ -384,11 +385,11 @@ class BufferScroll(sublime_plugin.EventListener):
                     # ugly hack
                     # ugly hack
                     # ugly hack
-
-                    sublime.set_timeout(lambda: self.stupid_scroll(view, position), 50)
-                    if debug:
-                        print('scroll set: '+str(position));
-                        print('supposed current scroll: '+str(view.viewport_position())); # THIS LIES
+                    if Pref.get('restore_scroll', view):
+                        sublime.set_timeout(lambda: self.stupid_scroll(view, position), 50)
+                        if debug:
+                            print('scroll set: '+str(position));
+                            print('supposed current scroll: '+str(view.viewport_position())); # THIS LIES
 
     def restore(self, view, where = 'unknow'):
         global already_restored
@@ -463,10 +464,10 @@ class BufferScroll(sublime_plugin.EventListener):
                         print('syntax: '+str(db[id]['x']));
 
                 # scroll
-                if Pref.get('i_use_cloned_views', view) and index in db[id]['l']:
+                if  Pref.get('restore_scroll', view) and Pref.get('i_use_cloned_views', view) and index in db[id]['l']:
                     position = tuple(db[id]['l'][index])
                     view.set_viewport_position(position, Pref.use_animations)
-                else:
+                elif Pref.get('restore_scroll', view):
                     position = tuple(db[id]['l']['0'])
                     view.set_viewport_position(position, Pref.use_animations)
 

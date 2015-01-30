@@ -10,6 +10,9 @@
 	/* this allow to sync the scroll of the clones of a view */
 	"synch_scroll": true,
 
+	/* this allows you to stop restoring scroll in case of conflicting with some other package, example CTags */
+	"restore_scroll": true,
+
 	/* The line you work with is automatically the vertical center of the screen. */
 	"typewriter_scrolling": false,
 
