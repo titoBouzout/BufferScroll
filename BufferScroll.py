@@ -739,7 +739,7 @@ class BufferScrollListener(sublime_plugin.EventListener):
         # print('on_window_command')
         # print(command_name)
         # print(args)
-        if command_name == 'goto_definition':
+        if command_name == 'goto_definition' or command_name == 'navigate_to_definition':
             last_focused_view_name = 'None'
             last_focused_goto_definition = True
     def on_post_text_command(self, view, command_name, args):
