@@ -724,16 +724,17 @@ def synch_data_loop():
             sublime.set_timeout(lambda:synch_data(None, 'thread'), 0)
         time.sleep(0.5)
 
-
-
-
 class BufferScrollListener(sublime_plugin.EventListener):
 
     def on_text_command(self, view, command_name, args):
+        global last_focused_view_name, last_focused_goto_definition
         # print('on_text_command')
         # print(command_name)
         # print(args)
-        pass
+        if command_name == 'goto_definition' or command_name == 'navigate_to_definition':
+            last_focused_view_name = 'None'
+            last_focused_goto_definition = True
+
     def on_window_command(self, window, command_name, args):
         global last_focused_view_name, last_focused_goto_definition
         # print('on_window_command')
@@ -742,11 +743,13 @@ class BufferScrollListener(sublime_plugin.EventListener):
         if command_name == 'goto_definition' or command_name == 'navigate_to_definition':
             last_focused_view_name = 'None'
             last_focused_goto_definition = True
+
     def on_post_text_command(self, view, command_name, args):
         # print('on_post_text_command')
         # print(command_name)
         # print(args)
         pass
+
     def on_post_window_command(self, window, command_name, args):
         # print('on_post_window_command')
         # print(command_name)
