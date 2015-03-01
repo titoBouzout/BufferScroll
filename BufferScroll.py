@@ -748,12 +748,13 @@ class BufferScrollListener(sublime_plugin.EventListener):
         # print('on_post_text_command')
         # print(command_name)
         # print(args)
-        pass
+
+        # typewriter_scrolling
+        if command_name == 'move' or  command_name == 'move_to':
+            BufferScrollAPI.on_modified(view)
 
     def on_post_window_command(self, window, command_name, args):
         # print('on_post_window_command')
         # print(command_name)
         # print(args)
-        # if command_name == 'open_dir':
-        #   return ('noop',[])
         pass
