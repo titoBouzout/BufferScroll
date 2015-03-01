@@ -83,6 +83,7 @@ class Pref():
         Pref.i_use_cloned_views               = s.get('i_use_cloned_views', False)
         Pref.max_database_records             = s.get('max_database_records', 500)
         Pref.restore_scroll                   = s.get('restore_scroll', True)
+        Pref.remember_settings_list           = s.get('remember_settings_list', [])
 
         Pref.current_view_id                  = -1
 
@@ -307,6 +308,15 @@ class BufferScroll(sublime_plugin.EventListener):
             if debug:
                 print('syntax: '+str(db[id]['x']))
 
+            # settings list
+            settings = Pref.get('remember_settings_list', view)
+            db[id]['p'] = []
+            for item in settings:
+                if item:
+                    value = view.settings().get(item, 'waaaaaa')
+                    if value != 'waaaaaa':
+                        db[id]['p'].append({'k':item, 'v':value})
+
             # write to disk only if something changed
             if old_db != db[id] or where == 'on_deactivated':
                 db.move_to_end(id)
@@ -346,15 +356,18 @@ class BufferScroll(sublime_plugin.EventListener):
                     print ('id: '+id)
                     print ('position: '+index)
 
-                if id in db:
+                if id in db and Pref.get('restore_scroll', view):
 
                     # scroll
-                    if Pref.get('restore_scroll', view) and Pref.get('i_use_cloned_views', view) and index in db[id]['l']:
+                    old_syntax = view.settings().get('syntax')
+                    view.settings().set('syntax', 'Packages/Text/Plain text.tmLanguage')
+                    if Pref.get('i_use_cloned_views', view) and index in db[id]['l']:
                         position = tuple(db[id]['l'][index])
                         view.set_viewport_position(position, Pref.use_animations)
-                    elif Pref.get('restore_scroll', view):
+                    else:
                         position = tuple(db[id]['l']['0'])
                         view.set_viewport_position(position, Pref.use_animations)
+                    view.settings().set('syntax', old_syntax)
 
                     # ugly hack
                     # ugly hack
@@ -385,11 +398,10 @@ class BufferScroll(sublime_plugin.EventListener):
                     # ugly hack
                     # ugly hack
                     # ugly hack
-                    if Pref.get('restore_scroll', view):
-                        sublime.set_timeout(lambda: self.stupid_scroll(view, position), 50)
-                        if debug:
-                            print('scroll set: '+str(position));
-                            print('supposed current scroll: '+str(view.viewport_position())); # THIS LIES
+                    sublime.set_timeout(lambda: self.stupid_scroll(view, position), 50)
+                    if debug:
+                        print('scroll set: '+str(position));
+                        print('supposed current scroll: '+str(view.viewport_position())); # THIS LIES
 
     def restore(self, view, where = 'unknow'):
         global already_restored
@@ -463,20 +475,33 @@ class BufferScroll(sublime_plugin.EventListener):
                     if debug:
                         print('syntax: '+str(db[id]['x']));
 
+                if 'p' in db[id]:
+                    for item in Pref.get('remember_settings_list', view):
+                        for i in db[id]['p']:
+                            if 'k' in i and i['k'] == item:
+                                view.settings().set(i['k'], i['v'])
+                                break
+
                 # scroll
+                old_syntax = view.settings().get('syntax')
+                view.settings().set('syntax', 'Packages/Text/Plain text.tmLanguage')
                 if  Pref.get('restore_scroll', view) and Pref.get('i_use_cloned_views', view) and index in db[id]['l']:
                     position = tuple(db[id]['l'][index])
                     view.set_viewport_position(position, Pref.use_animations)
                 elif Pref.get('restore_scroll', view):
                     position = tuple(db[id]['l']['0'])
                     view.set_viewport_position(position, Pref.use_animations)
+                view.settings().set('syntax', old_syntax)
 
                 if debug:
                     print('scroll set: '+str(position));
                     print('supposed current scroll: '+str(view.viewport_position())); # THIS LIES
 
     def stupid_scroll(self, view, position):
+        old_syntax = view.settings().get('syntax')
+        view.settings().set('syntax', 'Packages/Text/Plain text.tmLanguage')
         view.set_viewport_position(position, Pref.use_animations)
+        view.settings().set('syntax', old_syntax)
 
     def print_stupid_scroll(self, view):
         print('current scroll for: '+str(view.file_name()));

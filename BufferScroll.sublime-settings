@@ -25,6 +25,11 @@
 
 	"max_database_records": 500,
 
+	/* remembers the following view settings */
+	"remember_settings_list": [
+		"spell_check"
+	],
+
 	/* any syntax specific settings you want.. o_O (Note: lowercase syntax names)*/
 
 	"plain text": {
