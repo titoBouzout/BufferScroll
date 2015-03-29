@@ -15,6 +15,7 @@
 
 	/* The line you work with is automatically the vertical center of the screen. */
 	"typewriter_scrolling": false,
+	"typewriter_scrolling_shift": "0", //shift the focused line by this number (positive or negative).
 	"typewriter_scrolling_follow_cursor_movement": true,
 
 	/* ST has animations for when scrolling, these are disabled by default */

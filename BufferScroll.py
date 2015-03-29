@@ -70,7 +70,6 @@ def plugin_loaded():
         running_synch_scroll_loop = True
         thread.start_new_thread(synch_scroll_loop, ())
 
-
 class Pref():
     def load(self):
         Pref.remember_color_scheme                       = s.get('remember_color_scheme', False)
@@ -79,6 +78,7 @@ class Pref():
         Pref.synch_folds                                 = s.get('synch_folds', False)
         Pref.synch_scroll                                = s.get('synch_scroll', False)
         Pref.typewriter_scrolling                        = s.get('typewriter_scrolling', False)
+        Pref.typewriter_scrolling_shift                  = int(s.get('typewriter_scrolling_shift', 0))
         Pref.typewriter_scrolling_follow_cursor_movement = s.get('typewriter_scrolling_follow_cursor_movement', True)
         Pref.use_animations                              = s.get('use_animations', False)
         Pref.i_use_cloned_views                          = s.get('i_use_cloned_views', False)
@@ -231,7 +231,12 @@ class BufferScroll(sublime_plugin.EventListener):
             if not window:
                 window = sublime.active_window()
             view = window.active_view()
-            view.show_at_center(view.sel()[0].end())
+            line, col = view.rowcol(view.sel()[0].end())
+
+            line = line-Pref.typewriter_scrolling_shift
+            if line < 1:
+                line = 0
+            view.show_at_center(view.text_point(line, 0))
 
     # saving
     def save(self, view, where = 'unknow'):
