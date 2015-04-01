@@ -73,6 +73,7 @@ def plugin_loaded():
 class Pref():
     def load(self):
         Pref.remember_color_scheme                       = s.get('remember_color_scheme', False)
+        Pref.remember_syntax                             = s.get('remember_syntax', False)
         Pref.synch_bookmarks                             = s.get('synch_bookmarks', False)
         Pref.synch_marks                                 = s.get('synch_marks', False)
         Pref.synch_folds                                 = s.get('synch_folds', False)
@@ -310,9 +311,10 @@ class BufferScroll(sublime_plugin.EventListener):
                     print('color_scheme: '+str(db[id]['c']))
 
             # syntax
-            db[id]['x'] = view.settings().get('syntax')
-            if debug:
-                print('syntax: '+str(db[id]['x']))
+            if Pref.get('remember_syntax', view):
+                db[id]['x'] = view.settings().get('syntax')
+                if debug:
+                    print('syntax: '+str(db[id]['x']))
 
             # settings list
             settings = Pref.get('remember_settings_list', view)
@@ -473,7 +475,7 @@ class BufferScroll(sublime_plugin.EventListener):
                         print('color scheme: '+str(db[id]['c']));
 
                 # syntax
-                if view.settings().get('syntax') != db[id]['x'] and lexists(dirname(sublime.packages_path())+'/'+db[id]['x']):
+                if Pref.get('remember_syntax', view) and 'x' in db[id] and view.settings().get('syntax') != db[id]['x'] and lexists(dirname(sublime.packages_path())+'/'+db[id]['x']):
                     view.settings().set('syntax', db[id]['x'])
                     if debug:
                         print('syntax: '+str(db[id]['x']));

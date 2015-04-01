@@ -1,6 +1,7 @@
 {
 	/* this is used for allowing to use more than 1 colour scheme at the same time in different views */
 	"remember_color_scheme": false,
+	"remember_syntax": false,
 
 	/* allows to keep in sync bookmarks, marks or folds across cloned views */
 	"synch_bookmarks": false,
