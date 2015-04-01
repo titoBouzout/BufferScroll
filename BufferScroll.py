@@ -365,15 +365,12 @@ class BufferScroll(sublime_plugin.EventListener):
                 if id in db and Pref.get('restore_scroll', view):
 
                     # scroll
-                    old_syntax = view.settings().get('syntax')
-                    view.settings().set('syntax', 'Packages/Text/Plain text.tmLanguage')
                     if Pref.get('i_use_cloned_views', view) and index in db[id]['l']:
                         position = tuple(db[id]['l'][index])
                         view.set_viewport_position(position, Pref.use_animations)
                     else:
                         position = tuple(db[id]['l']['0'])
                         view.set_viewport_position(position, Pref.use_animations)
-                    view.settings().set('syntax', old_syntax)
 
                     # ugly hack
                     # ugly hack
@@ -489,25 +486,19 @@ class BufferScroll(sublime_plugin.EventListener):
                                 break
 
                 # scroll
-                old_syntax = view.settings().get('syntax')
-                view.settings().set('syntax', 'Packages/Text/Plain text.tmLanguage')
                 if  Pref.get('restore_scroll', view) and Pref.get('i_use_cloned_views', view) and index in db[id]['l']:
                     position = tuple(db[id]['l'][index])
                     view.set_viewport_position(position, Pref.use_animations)
                 elif Pref.get('restore_scroll', view):
                     position = tuple(db[id]['l']['0'])
                     view.set_viewport_position(position, Pref.use_animations)
-                view.settings().set('syntax', old_syntax)
 
                 if debug:
                     print('scroll set: '+str(position));
                     print('supposed current scroll: '+str(view.viewport_position())); # THIS LIES
 
     def stupid_scroll(self, view, position):
-        old_syntax = view.settings().get('syntax')
-        view.settings().set('syntax', 'Packages/Text/Plain text.tmLanguage')
         view.set_viewport_position(position, Pref.use_animations)
-        view.settings().set('syntax', old_syntax)
 
     def print_stupid_scroll(self, view):
         print('current scroll for: '+str(view.file_name()));
