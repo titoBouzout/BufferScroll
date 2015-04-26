@@ -226,7 +226,7 @@ class BufferScroll(sublime_plugin.EventListener):
 
     # typewriter scrolling
     def on_modified(self, view):
-        if Pref.get('typewriter_scrolling', view) and len(view.sel()) == 1 and not view.settings().get('is_widget') and not view.is_scratch():
+        if not view.settings().get('is_widget') and not view.is_scratch() and len(view.sel()) == 1 and Pref.get('typewriter_scrolling', view):
             # TODO STBUG if the view is in a column, for some reason the parameter view, is not correct. This fix it
             window = view.window();
             if not window:
@@ -774,7 +774,7 @@ class BufferScrollListener(sublime_plugin.EventListener):
         # print(args)
 
         # typewriter_scrolling
-        if Pref.get('typewriter_scrolling_follow_cursor_movement', view) and (command_name == 'move' or  command_name == 'move_to'):
+        if (command_name == 'move' or  command_name == 'move_to') and Pref.get('typewriter_scrolling_follow_cursor_movement', view):
             BufferScrollAPI.on_modified(view)
 
     def on_post_window_command(self, window, command_name, args):
