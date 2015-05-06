@@ -233,11 +233,14 @@ class BufferScroll(sublime_plugin.EventListener):
                 window = sublime.active_window()
             view = window.active_view()
             line, col = view.rowcol(view.sel()[0].end())
-
             line = line-Pref.typewriter_scrolling_shift
             if line < 1:
                 line = 0
-            view.show_at_center(view.text_point(line, 0))
+            point = view.text_point(line, col)
+            position_prev = view.viewport_position() # save the horizontal scroll
+            view.show_at_center(point)
+            position_next = view.viewport_position() # restore the horizontal scroll
+            view.set_viewport_position((position_prev[0], position_next[1]))
 
     # saving
     def save(self, view, where = 'unknow'):
