@@ -232,7 +232,7 @@ class BufferScroll(sublime_plugin.EventListener):
             if not window:
                 window = sublime.active_window()
             view = window.active_view()
-            line, col = view.rowcol(view.sel()[0].end())
+            line, col = view.rowcol(view.sel()[0].b)
             line = line-Pref.typewriter_scrolling_shift
             if line < 1:
                 line = 0
