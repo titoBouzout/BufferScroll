@@ -9,7 +9,7 @@
 	"synch_marks": false,
 
 	/* this allow to sync the scroll of the clones of a view */
-	"synch_scroll": true,
+	"synch_scroll": false,
 
 	/* this allows you to stop restoring scroll in case of conflicting with some other package, example CTags */
 	"restore_scroll": true,
@@ -41,7 +41,9 @@
 
 	"python": {
 		"use_animations": false
-	}
+	},
 	/* etc */
+
+	"debug": false
 
 }
