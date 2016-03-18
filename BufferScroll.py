@@ -210,6 +210,7 @@ class BufferScroll(sublime_plugin.EventListener):
 
     # track the current_view. See next event listener
     def on_activated(self, view):
+
         global already_restored
         window = view.window();
         if not window:
