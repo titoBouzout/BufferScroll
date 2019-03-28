@@ -3,14 +3,12 @@
 		"caption": "Edit",
 		"mnemonic": "E",
 		"id": "edit",
-		"children":
-		[
+		"children": [
 			{
 				"caption": "Code Folding",
 				"id": "fold",
-				"children":
-				[
-					{"caption":"-"},
+				"children": [
+					{ "caption": "-" },
 					{ "caption": "Refold", "command": "buffer_scroll_re_fold" }
 				]
 			}
@@ -20,32 +18,29 @@
 		"caption": "Preferences",
 		"mnemonic": "n",
 		"id": "preferences",
-		"children":
-		[
+		"children": [
 			{
 				"command": "buffer_scroll_forget",
-				"args": {"what": "color_scheme"},
+				"args": { "what": "color_scheme" },
 				"caption": "Color Scheme Forget For View"
 			},
-			{"caption":"-"},
+			{ "caption": "-" },
 			{
 				"caption": "Package Settings",
 				"mnemonic": "P",
 				"id": "package-settings",
-				"children":
-				[
+				"children": [
 					{
 						"caption": "BufferScroll",
-						"children":
-						[
+						"children": [
 							{
 								"command": "open_file",
-								"args": {"file": "${packages}/BufferScroll/BufferScroll.sublime-settings"},
+								"args": { "file": "${packages}/BufferScroll/BufferScroll.sublime-settings" },
 								"caption": "Settings – Default"
 							},
 							{
 								"command": "open_file",
-								"args": {"file": "${packages}/User/BufferScroll.sublime-settings"},
+								"args": { "file": "${packages}/User/BufferScroll.sublime-settings" },
 								"caption": "Settings – User"
 							}
 						]
